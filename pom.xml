@@ -18,4 +18,11 @@
         <module>backend</module>
         <module>database</module>
     </modules>
+
+    <dependencies>
+<!--        <dependency>-->
+<!--            <groupId>org.snf4j</groupId>-->
+<!--            <artifactId>snf4j-core</artifactId>-->
+<!--        </dependency>-->
+    </dependencies>
 </project>
