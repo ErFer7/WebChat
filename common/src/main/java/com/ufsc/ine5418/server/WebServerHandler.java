@@ -1,4 +1,4 @@
-package com.ufsc.ine5418.web;
+package com.ufsc.ine5418.server;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -7,31 +7,34 @@ import org.snf4j.core.handler.SessionEvent;
 import org.snf4j.core.session.IStreamSession;
 import org.snf4j.websocket.AbstractWebSocketHandler;
 import org.snf4j.websocket.IWebSocketSession;
-import org.snf4j.websocket.frame.Frame;
 import org.snf4j.websocket.frame.TextFrame;
 
-public class WebServerHandler extends AbstractWebSocketHandler {
+import com.ufsc.ine5418.protocol.Packet;
 
-	private final static ConcurrentMap<Long, IStreamSession> sessions = new ConcurrentHashMap<Long, IStreamSession>();
+public abstract class WebServerHandler extends AbstractWebSocketHandler {
+
+	protected final ConcurrentMap<Long, IStreamSession> sessions = new ConcurrentHashMap<Long, IStreamSession>();
 
 	@Override
 	public void read(Object frame) {
-		if (frame instanceof Frame) {
+		if (frame instanceof TextFrame) {
 			System.out.println("[Handler] Received frame: " + ((TextFrame) frame).getText());
-			send("Received frame: " + ((TextFrame) frame).getText());
+
+			Packet packet = new Packet(((TextFrame) frame).getText());
+			this.readPacket(packet);
 		}
 	}
 
-	void send(String message) {
-		for (Long sessionId : sessions.keySet()) {
-			IStreamSession session = sessions.get(sessionId);
-			session.writenf(new TextFrame("Received frame: " + message));
-		}
+	public abstract void readPacket(Packet packet);
+
+	public void sendPacket(Long sessionId, Packet packet) {
+		IStreamSession session = sessions.get(sessionId);
+		session.writenf(new TextFrame(packet.toString()));
 	}
 
 	@Override
 	public void event(SessionEvent event) {
-		IWebSocketSession session = (IWebSocketSession) getSession();
+		IWebSocketSession session = (IWebSocketSession) this.getSession();
 
 		switch (event) {
 		case CREATED:
@@ -43,11 +46,14 @@ public class WebServerHandler extends AbstractWebSocketHandler {
 		case READY:
 			session.getAttributes().put("user-id", session.getRemoteAddress());
 			sessions.put(session.getId(), session);
+
 			System.out.println("[Handler] Session ready");
 			break;
 		case CLOSED:
 			if (sessions.remove(session.getId()) != null) {
 				System.out.println("[Handler] Session closed");
+			} else {
+				System.out.println("[Handler] Session closed (not found)");
 			}
 			break;
 		case ENDING:

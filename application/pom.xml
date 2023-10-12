@@ -16,8 +16,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.ufsc.server</groupId>
-            <artifactId>server</artifactId>
+            <groupId>com.ufsc.common</groupId>
+            <artifactId>common</artifactId>
             <version>0.1</version>
             <scope>compile</scope>
         </dependency>

@@ -1,4 +1,4 @@
-package com.ufsc.ine5418.web;
+package com.ufsc.ine5418.server;
 
 import java.net.InetSocketAddress;
 import java.nio.channels.ServerSocketChannel;
@@ -9,6 +9,12 @@ import org.snf4j.websocket.AbstractWebSocketSessionFactory;
 import org.snf4j.websocket.IWebSocketHandler;
 
 public class WebServer {
+
+	private final IWebSocketHandler handler;
+
+	public WebServer(IWebSocketHandler handler) {
+		this.handler = handler;
+	}
 
 	public void start(int port) throws Exception {
 		SelectorLoop loop = new SelectorLoop();
@@ -23,17 +29,21 @@ public class WebServer {
 			loop.register(channel, new AbstractWebSocketSessionFactory() {
 				@Override
 				protected IWebSocketHandler createHandler(SocketChannel channel) {
-					return new WebServerHandler();
+					return WebServer.this.getHandler();
 				}
 			}).sync();
 
-			System.out.println("The server is ready on port: " + port);
+			System.out.println("[Server] The server is ready on port: " + port);
 
 			loop.join();
 		} catch (Exception ex) {
-			System.out.println("Exception: " + ex.getMessage());
+			System.out.println("[Server] Exception: " + ex.getMessage());
 		} finally {
 			loop.stop();
 		}
+	}
+
+	public IWebSocketHandler getHandler() {
+		return this.handler;
 	}
 }
