@@ -8,6 +8,11 @@
     </remote-repository>
     <remote-repository>
       <option name="id" value="central" />
+      <option name="name" value="Maven Repository Switchboard" />
+      <option name="url" value="https://repositorio.bridge.ufsc.br/content/groups/public" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="central" />
       <option name="name" value="Central Repository" />
       <option name="url" value="https://repositorio.bridge.ufsc.br/content/groups/public" />
     </remote-repository>

@@ -1,0 +1,25 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.ufsc</groupId>
+        <artifactId>ine5418</artifactId>
+        <version>0.1</version>
+    </parent>
+
+    <groupId>com.ufsc.application</groupId>
+    <artifactId>application</artifactId>
+    <version>0.1</version>
+    <name>INE5418 - Application</name>
+    <description>Application</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.ufsc.server</groupId>
+            <artifactId>server</artifactId>
+            <version>0.1</version>
+            <scope>compile</scope>
+        </dependency>
+    </dependencies>
+</project>
