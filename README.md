@@ -15,4 +15,4 @@ First assignment in the INE5418 (Distributed Computing) course at UFSC.
 
 ---
 
-[Changelog](CHANGELOG.md)
+[Changelog](Changelog.md)
