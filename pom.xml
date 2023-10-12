@@ -15,14 +15,22 @@
     </properties>
 
     <modules>
-        <module>backend</module>
+        <module>server</module>
         <module>database</module>
+        <module>application</module>
+        <module>gateway</module>
     </modules>
 
     <dependencies>
-<!--        <dependency>-->
-<!--            <groupId>org.snf4j</groupId>-->
-<!--            <artifactId>snf4j-core</artifactId>-->
-<!--        </dependency>-->
+        <dependency>
+            <groupId>org.snf4j</groupId>
+            <artifactId>snf4j-core</artifactId>
+            <version>1.10.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.snf4j</groupId>
+            <artifactId>snf4j-websocket</artifactId>
+            <version>1.10.0</version>
+        </dependency>
     </dependencies>
 </project>

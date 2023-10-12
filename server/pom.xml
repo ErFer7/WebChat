@@ -8,8 +8,8 @@
     <version>0.1</version>
   </parent>
 
-  <groupId>com.ufsc.backend</groupId>
-  <artifactId>backend</artifactId>
+  <groupId>com.ufsc.server</groupId>
+  <artifactId>server</artifactId>
   <version>0.1</version>
   <name>INE5418 - Backend</name>
   <description>Backend</description>
