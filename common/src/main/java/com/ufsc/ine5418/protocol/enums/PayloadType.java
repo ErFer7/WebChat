@@ -1,7 +1,10 @@
 package com.ufsc.ine5418.protocol.enums;
 
 public enum PayloadType {
-	STATUS,
 	CONNECTION,
+	ROUTING,
+	CLOSING,
+	USER,
+	CHAT,
 	MESSAGE
 }
