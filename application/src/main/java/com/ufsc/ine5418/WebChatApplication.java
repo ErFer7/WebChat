@@ -1,6 +1,7 @@
 package com.ufsc.ine5418;
 
 import com.ufsc.ine5418.config.NetworkConfiguration;
+import com.ufsc.ine5418.database.EntityManagerProvider;
 import com.ufsc.ine5418.database.PropertyLoader;
 import com.ufsc.ine5418.server.Server;
 import com.ufsc.ine5418.server.WebChatClientHandler;
@@ -10,7 +11,8 @@ import com.ufsc.ine5418.server.WebChatServerHandler;
 public class WebChatApplication {
 
 	public static void main(String[] args) throws Exception {
-		new PropertyLoader().loadProperties();
+		PropertyLoader.loadAndSetSystemProperties("config/application.properties");
+		EntityManagerProvider.init();
 
 		NetworkConfiguration config = new NetworkConfiguration();
 
