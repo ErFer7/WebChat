@@ -8,6 +8,8 @@ import com.ufsc.ine5418.utils.Logger;
 
 public abstract class Handler extends AbstractWebSocketHandler {
 
+	private Manager manager;
+
 	@Override
 	public void read(Object frame) {
 		if (frame instanceof TextFrame) {
@@ -19,4 +21,12 @@ public abstract class Handler extends AbstractWebSocketHandler {
 	}
 
 	public abstract void readPacket(Packet packet);
+
+	public void setManager(Manager manager) {
+		this.manager = manager;
+	}
+
+	public Manager getManager() {
+		return manager;
+	}
 }

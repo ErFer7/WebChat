@@ -11,10 +11,14 @@ public class WebChatApplication {
 	public static void main(String[] args) throws Exception {
 		NetworkConfiguration config = new NetworkConfiguration();
 
-		WebChatServerHandler webChatHandler = new WebChatServerHandler();
+		WebChatServerHandler webChatServerHandler = new WebChatServerHandler();
 		WebChatClientHandler webChatClientHandler = new WebChatClientHandler(config.getGatewayHost(), config.getGatewayPort());
-		WebChatManager webChatManager = new WebChatManager(webChatHandler, webChatClientHandler);
-		Server webServer = new Server(webChatHandler, webChatClientHandler, webChatManager);
+		WebChatManager webChatManager = new WebChatManager(webChatServerHandler, webChatClientHandler, config.getGatewayIdentifier(), config.getGatewayPassword());
+
+		webChatServerHandler.setManager(webChatManager);
+		webChatClientHandler.setManager(webChatManager);
+
+		Server webServer = new Server(webChatServerHandler, webChatClientHandler, webChatManager);
 
 		webServer.start(config.getApplicationPort());
 	}

@@ -62,4 +62,31 @@ public class Packet {
 		return jsonPacket.toString();
 	}
 
+	public String getHost() {
+		return host;
+	}
+
+	public HostType getHostType() {
+		return hostType;
+	}
+
+	public String getToken() {
+		return token;
+	}
+
+	public Status getStatus() {
+		return status;
+	}
+
+	public OperationType getOperationType() {
+		return operationType;
+	}
+
+	public PayloadType getPayloadType() {
+		return payloadType;
+	}
+
+	public JSONObject getPayload() {
+		return payload;
+	}
 }

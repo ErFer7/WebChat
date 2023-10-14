@@ -14,6 +14,8 @@ public class NetworkConfiguration {
 
 	private final String gatewayHost;
 	private final Integer gatewayPort;
+	private final String gatewayIdentifier;
+	private final String gatewayPassword;
 	private final Integer applicationPort;
 
 	public NetworkConfiguration() {
@@ -24,6 +26,8 @@ public class NetworkConfiguration {
 
 			this.gatewayHost = config.getString("gatewayHost");
 			this.gatewayPort = config.getInt("gatewayPort");
+			this.gatewayIdentifier = config.getString("gatewayIdentifier");
+			this.gatewayPassword = config.getString("gatewayPassword");
 			this.applicationPort = config.getInt("applicationPort");
 		} catch (Exception exception) {
 			Logger.log(this.getClass().getSimpleName(), "Error reading JSON file: " + exception.getMessage());
@@ -58,6 +62,14 @@ public class NetworkConfiguration {
 
 	public Integer getGatewayPort() {
 		return gatewayPort;
+	}
+
+	public String getGatewayIdentifier() {
+		return gatewayIdentifier;
+	}
+
+	public String getGatewayPassword() {
+		return gatewayPassword;
 	}
 
 	public Integer getApplicationPort() {

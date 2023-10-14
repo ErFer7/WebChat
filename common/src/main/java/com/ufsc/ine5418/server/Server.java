@@ -14,20 +14,20 @@ import com.ufsc.ine5418.utils.Logger;
 
 public class Server {
 
-	private final IWebSocketHandler serverHandler;
-	private final IWebSocketHandler clientHandler;
-	private final ServerManager manager;
+	private final ServerHandler serverHandler;
+	private final ClientHandler clientHandler;
+	private final Manager manager;
 	private final SocketChannel clientChannel;
 
-	public Server(IWebSocketHandler serverHandler, IWebSocketHandler clientHandler, ServerManager manager) throws IOException {
+	public Server(ServerHandler serverHandler, ClientHandler clientHandler, Manager manager) throws IOException {
 		this.serverHandler = serverHandler;
 		this.clientHandler = clientHandler;
 		this.manager = manager;
 		this.clientChannel = clientHandler != null ? SocketChannel.open() : null;
 	}
 
-	public Server(IWebSocketHandler serverHandler, ServerManager manager) throws IOException {
-		this(serverHandler, null, manager);
+	public Server(ServerHandler serverHandler) throws IOException {
+		this(serverHandler, null, null);
 	}
 
 	public void start(int port) throws Exception {
@@ -52,10 +52,12 @@ public class Server {
 			if (this.clientChannel != null) {
 				this.clientChannel.configureBlocking(false);
 				loop.register(clientChannel, new WebSocketSession(Server.this.getClientHandler(), true));
-				this.manager.setClientChannel(clientChannel);
+				this.clientHandler.setClientChannel(clientChannel);
 			}
 
-			this.manager.start();
+			if (this.manager != null) {
+				this.manager.start();
+			}
 
 			loop.join();
 		} catch (Exception exception) {
@@ -65,11 +67,11 @@ public class Server {
 		}
 	}
 
-	public IWebSocketHandler getServerHandler() {
+	public ServerHandler getServerHandler() {
 		return this.serverHandler;
 	}
 
-	public IWebSocketHandler getClientHandler() {
+	public ClientHandler getClientHandler() {
 		return this.clientHandler;
 	}
 }
