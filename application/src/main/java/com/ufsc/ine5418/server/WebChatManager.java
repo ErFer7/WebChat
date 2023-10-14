@@ -5,6 +5,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
 import com.ufsc.ine5418.protocol.Packet;
+import com.ufsc.ine5418.protocol.PacketFactory;
 import com.ufsc.ine5418.protocol.enums.HostType;
 import com.ufsc.ine5418.protocol.enums.OperationType;
 import com.ufsc.ine5418.protocol.enums.PayloadType;
@@ -16,6 +17,7 @@ public class WebChatManager extends ServerManager {
 	private final WebChatClientHandler clientHandler;
 	private final String gatewayHost;
 	private final int gatewayPort;
+	private final PacketFactory packetFactory;
 	private boolean registered;
 
 	public WebChatManager(WebChatServerHandler serverHandler, WebChatClientHandler clientHandler) {
@@ -23,6 +25,7 @@ public class WebChatManager extends ServerManager {
 		this.clientHandler = clientHandler;
 		this.gatewayHost = this.clientHandler.getGatewayHost();
 		this.gatewayPort = this.clientHandler.getGatewayPort();
+		this.packetFactory = new PacketFactory(this.clientHandler.getSession().getLocalAddress().toString(), HostType.APPLICATION);
 		this.registered = false;
 	}
 
@@ -54,7 +57,7 @@ public class WebChatManager extends ServerManager {
 	private void sendConnectionRequest() {
 		Logger.log(this.getClass().getSimpleName(), "Sending connection request to gateway");
 
-		Packet packet = new Packet(this.clientHandler.getSession().getLocalAddress().toString(), HostType.APPLICATION, null, null, OperationType.REQUEST, PayloadType.CONNECTION, null);
+		Packet packet = this.packetFactory.createPacket(null, OperationType.REQUEST, PayloadType.CONNECTION, null);
 
 		this.clientHandler.sendPacket(packet);
 		this.registered = true;
