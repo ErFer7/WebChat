@@ -1,4 +1,4 @@
-package com.ufsc.ine5418.protocol.enums;
+package com.ufsc.webchat.protocol.enums;
 
 public enum OperationType {
 	REQUEST,

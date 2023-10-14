@@ -1,21 +1,18 @@
-package com.ufsc.ine5418.server;
+package com.ufsc.webchat.server;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Objects;
 import java.util.concurrent.Semaphore;
 
-import org.snf4j.core.handler.SessionEvent;
 import org.snf4j.websocket.IWebSocketSession;
 
-import com.ufsc.ine5418.protocol.Packet;
-import com.ufsc.ine5418.utils.Logger;
+import com.ufsc.webchat.protocol.Packet;
 
 public class WebChatClientHandler extends ClientHandler {
 
 	private final String gatewayHost;
 	private final int gatewayPort;
-	private Semaphore readySemaphore;
+	private final Semaphore readySemaphore;
 
 	public WebChatClientHandler(String gatewayHost, int gatewayPort) throws URISyntaxException, InterruptedException {
 		super(new URI("ws://" + gatewayHost + ":" + gatewayPort));
@@ -32,13 +29,9 @@ public class WebChatClientHandler extends ClientHandler {
 	}
 
 	@Override
-	public void event(SessionEvent event) {
-		IWebSocketSession session = (IWebSocketSession) this.getSession();
-
-		if (Objects.requireNonNull(event) == SessionEvent.READY) {
-			Logger.log(this.getClass().getSimpleName(), "Session ready: " + session.getLocalAddress());
-			this.readySemaphore.release();
-		}
+	protected void sessionReady(IWebSocketSession session) {
+		super.sessionReady(session);
+		this.readySemaphore.release();
 	}
 
 	public String getGatewayHost() {

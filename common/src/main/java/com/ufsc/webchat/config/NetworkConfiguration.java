@@ -1,4 +1,4 @@
-package com.ufsc.ine5418.config;
+package com.ufsc.webchat.config;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -8,7 +8,7 @@ import java.nio.charset.StandardCharsets;
 
 import org.json.JSONObject;
 
-import com.ufsc.ine5418.utils.Logger;
+import com.ufsc.webchat.utils.Logger;
 
 public class NetworkConfiguration {
 

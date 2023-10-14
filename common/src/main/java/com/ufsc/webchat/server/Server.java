@@ -1,4 +1,4 @@
-package com.ufsc.ine5418.server;
+package com.ufsc.webchat.server;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -10,7 +10,7 @@ import org.snf4j.websocket.AbstractWebSocketSessionFactory;
 import org.snf4j.websocket.IWebSocketHandler;
 import org.snf4j.websocket.WebSocketSession;
 
-import com.ufsc.ine5418.utils.Logger;
+import com.ufsc.webchat.utils.Logger;
 
 public class Server {
 

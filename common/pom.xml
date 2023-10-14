@@ -4,13 +4,13 @@
 
   <parent>
     <groupId>com.ufsc</groupId>
-    <artifactId>ine5418</artifactId>
+    <artifactId>webchat</artifactId>
     <version>0.1</version>
   </parent>
 
   <groupId>com.ufsc.common</groupId>
   <artifactId>common</artifactId>
   <version>0.1</version>
-  <name>INE5418 - Common</name>
+  <name>WebChat - Common</name>
   <description>Common</description>
 </project>
