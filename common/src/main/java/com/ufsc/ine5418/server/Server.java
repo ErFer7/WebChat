@@ -58,8 +58,8 @@ public class Server {
 			this.manager.start();
 
 			loop.join();
-		} catch (Exception ex) {
-			Logger.log(this.getClass().getSimpleName(), "Exception: " + ex.getMessage());
+		} catch (Exception exception) {
+			Logger.log(this.getClass().getSimpleName(), "Exception: " + exception.getMessage());
 		} finally {
 			loop.stop();
 		}

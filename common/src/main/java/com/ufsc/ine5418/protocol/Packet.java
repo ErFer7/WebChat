@@ -43,8 +43,8 @@ public class Packet {
 			this.operationType = OperationType.valueOf(jsonPacket.getString("operationType"));
 			this.payloadType = PayloadType.valueOf(jsonPacket.getString("payloadType"));
 			this.payload = FieldParser.nullableFieldToJSONObject(jsonPacket, "payload");
-		} catch (Exception e) {
-			Logger.log(this.getClass().getSimpleName(), "Error parsing packet: " + e.getMessage());
+		} catch (Exception exception) {
+			Logger.log(this.getClass().getSimpleName(), "Error parsing packet: " + exception.getMessage());
 		}
 	}
 

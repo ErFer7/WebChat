@@ -25,9 +25,9 @@ public class NetworkConfiguration {
 			this.gatewayHost = config.getString("gatewayHost");
 			this.gatewayPort = config.getInt("gatewayPort");
 			this.applicationPort = config.getInt("applicationPort");
-		} catch (Exception e) {
-			Logger.log(this.getClass().getSimpleName(), "Error reading JSON file: " + e.getMessage());
-			throw e;
+		} catch (Exception exception) {
+			Logger.log(this.getClass().getSimpleName(), "Error reading JSON file: " + exception.getMessage());
+			throw exception;
 		}
 	}
 
@@ -38,15 +38,15 @@ public class NetworkConfiguration {
 			File file = new File("network/config.json");
 			inputStream = new FileInputStream(file);
 			return new JSONObject(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
-		} catch (Exception e) {
-			Logger.log(this.getClass().getSimpleName(), "Error reading JSON file: " + e.getMessage());
+		} catch (Exception exception) {
+			Logger.log(this.getClass().getSimpleName(), "Error reading JSON file: " + exception.getMessage());
 			return null;
 		} finally {
 			if (inputStream != null) {
 				try {
 					inputStream.close();
-				} catch (IOException e) {
-					Logger.log(this.getClass().getSimpleName(), "Error reading JSON file: " + e.getMessage());
+				} catch (IOException ioException) {
+					Logger.log(this.getClass().getSimpleName(), "Error reading JSON file: " + ioException.getMessage());
 				}
 			}
 		}
