@@ -1,8 +1,8 @@
-package com.ufsc.ine5418;
+package com.ufsc.webchat;
 
-import com.ufsc.ine5418.config.NetworkConfiguration;
-import com.ufsc.ine5418.server.GatewayServerHandler;
-import com.ufsc.ine5418.server.Server;
+import com.ufsc.webchat.config.NetworkConfiguration;
+import com.ufsc.webchat.server.GatewayServerHandler;
+import com.ufsc.webchat.server.Server;
 
 public class WebChatGateway {
 

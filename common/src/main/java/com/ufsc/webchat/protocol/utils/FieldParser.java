@@ -1,4 +1,4 @@
-package com.ufsc.ine5418.protocol.utils;
+package com.ufsc.webchat.protocol.utils;
 
 import org.json.JSONObject;
 

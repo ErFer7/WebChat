@@ -1,19 +1,21 @@
-package com.ufsc.ine5418.server;
+package com.ufsc.webchat.server;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.concurrent.Semaphore;
 
-import com.ufsc.ine5418.protocol.Packet;
-import com.ufsc.ine5418.protocol.PacketFactory;
-import com.ufsc.ine5418.protocol.enums.HostType;
-import com.ufsc.ine5418.protocol.enums.Status;
-import com.ufsc.ine5418.utils.Logger;
+import org.json.JSONObject;
+
+import com.ufsc.webchat.protocol.Packet;
+import com.ufsc.webchat.protocol.PacketFactory;
+import com.ufsc.webchat.protocol.enums.HostType;
+import com.ufsc.webchat.protocol.enums.Status;
+import com.ufsc.webchat.utils.Logger;
 
 public class WebChatManager extends Manager {
 
-	private final WebChatServerHandler serverHandler;
+	private final WebChatServerHandler serverHandler;  // TODO: usar
 	private final WebChatClientHandler clientHandler;
 	private final String gatewayHost;
 	private final int gatewayPort;
@@ -56,6 +58,7 @@ public class WebChatManager extends Manager {
 
 		while (true) {
 			if (this.clientHandler.getClientChannel().isConnected()) {
+				// TODO: Implementar o fluxo de retry e controle do token
 				if (!this.registered) {
 					this.sendConnectionRequest();
 				}
@@ -67,10 +70,6 @@ public class WebChatManager extends Manager {
 				}
 			}
 		}
-	}
-
-	public void setHost(String host) {
-		this.packetFactory.setHost(host);
 	}
 
 	private void sendConnectionRequest() {
@@ -88,10 +87,15 @@ public class WebChatManager extends Manager {
 	}
 
 	public void receiveConnectionResponse(Packet packet) {
-		Logger.log(this.getClass().getSimpleName(), "Received connection response from gateway");
 
 		if (packet.getStatus() == Status.OK) {
+			Logger.log(this.getClass().getSimpleName(), "Gateway authentication successful");
 			this.registered = true;
+			JSONObject payload = packet.getPayload();
+
+			this.packetFactory.setToken(payload.getString("token"));
+		} else {
+			Logger.log(this.getClass().getSimpleName(), "Gateway authentication failed");
 		}
 
 		this.registerSemaphore.release();
@@ -100,7 +104,7 @@ public class WebChatManager extends Manager {
 	private boolean connectToGateway() {
 		int tries = 0;
 		int maxRetries = 5;
-		int timeout = 1000;
+		int waitTime = 1000;
 
 		while (!this.clientHandler.getClientChannel().isConnected()) {
 			Logger.log(this.getClass().getSimpleName(), "Trying to connect to gateway");
@@ -120,7 +124,7 @@ public class WebChatManager extends Manager {
 				}
 
 				try {
-					sleep(timeout);
+					sleep(waitTime);
 				} catch (InterruptedException interruptedException) {
 					Logger.log(this.getClass().getSimpleName(), "Exception: " + interruptedException.getMessage());
 				}

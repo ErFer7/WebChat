@@ -1,13 +1,13 @@
-package com.ufsc.ine5418.protocol;
+package com.ufsc.webchat.protocol;
 
 import org.json.JSONObject;
 
-import com.ufsc.ine5418.protocol.enums.HostType;
-import com.ufsc.ine5418.protocol.enums.OperationType;
-import com.ufsc.ine5418.protocol.enums.PayloadType;
-import com.ufsc.ine5418.protocol.enums.Status;
-import com.ufsc.ine5418.protocol.utils.FieldParser;
-import com.ufsc.ine5418.utils.Logger;
+import com.ufsc.webchat.protocol.enums.HostType;
+import com.ufsc.webchat.protocol.enums.OperationType;
+import com.ufsc.webchat.protocol.enums.PayloadType;
+import com.ufsc.webchat.protocol.enums.Status;
+import com.ufsc.webchat.protocol.utils.FieldParser;
+import com.ufsc.webchat.utils.Logger;
 
 public class Packet {
 

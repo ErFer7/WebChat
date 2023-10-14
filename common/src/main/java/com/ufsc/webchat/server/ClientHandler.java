@@ -1,4 +1,4 @@
-package com.ufsc.ine5418.server;
+package com.ufsc.webchat.server;
 
 import java.net.URI;
 import java.nio.channels.SocketChannel;
@@ -8,7 +8,7 @@ import org.snf4j.websocket.DefaultWebSocketSessionConfig;
 import org.snf4j.websocket.IWebSocketSessionConfig;
 import org.snf4j.websocket.frame.TextFrame;
 
-import com.ufsc.ine5418.protocol.Packet;
+import com.ufsc.webchat.protocol.Packet;
 
 public abstract class ClientHandler extends Handler {
 

@@ -4,13 +4,13 @@
 
     <parent>
         <groupId>com.ufsc</groupId>
-        <artifactId>ine5418</artifactId>
+        <artifactId>webchat</artifactId>
         <version>0.1</version>
     </parent>
 
     <groupId>com.ufsc.database</groupId>
     <artifactId>database</artifactId>
     <version>0.1</version>
-    <name>INE5418 - Database</name>
+    <name>WebChat - Database</name>
     <description>Database</description>
 </project>

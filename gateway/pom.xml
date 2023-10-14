@@ -4,14 +4,14 @@
 
     <parent>
         <groupId>com.ufsc</groupId>
-        <artifactId>ine5418</artifactId>
+        <artifactId>webchat</artifactId>
         <version>0.1</version>
     </parent>
 
     <groupId>com.ufsc.gateway</groupId>
     <artifactId>gateway</artifactId>
     <version>0.1</version>
-    <name>INE5418 - Gateway</name>
+    <name>WebChat - Gateway</name>
     <description>Gateway</description>
 
     <dependencies>

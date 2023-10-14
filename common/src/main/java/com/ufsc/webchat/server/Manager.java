@@ -1,4 +1,4 @@
-package com.ufsc.ine5418.server;
+package com.ufsc.webchat.server;
 
 public abstract class Manager extends Thread {
 

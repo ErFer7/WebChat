@@ -1,8 +1,8 @@
-package com.ufsc.ine5418.server;
+package com.ufsc.webchat.server;
 
-import com.ufsc.ine5418.protocol.Packet;
-import com.ufsc.ine5418.protocol.PacketFactory;
-import com.ufsc.ine5418.protocol.enums.HostType;
+import com.ufsc.webchat.protocol.Packet;
+import com.ufsc.webchat.protocol.PacketFactory;
+import com.ufsc.webchat.protocol.enums.HostType;
 
 public class WebChatServerHandler extends ServerHandler {
 
