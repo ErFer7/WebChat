@@ -11,7 +11,7 @@ First assignment in the INE5418 (Distributed Computing) course at UFSC.
 * **Backend language**: Java
 * **Frontend framework**: React
 * **Frontend language**: JavaScript
-* **Database**: SQLite
+* **Database**: PostgreeSQL
 
 ---
 
