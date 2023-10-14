@@ -23,7 +23,11 @@ public class Server {
 		this.serverHandler = serverHandler;
 		this.clientHandler = clientHandler;
 		this.manager = manager;
-		this.clientChannel = SocketChannel.open();
+		this.clientChannel = clientHandler != null ? SocketChannel.open() : null;
+	}
+
+	public Server(IWebSocketHandler serverHandler, ServerManager manager) throws IOException {
+		this(serverHandler, null, manager);
 	}
 
 	public void start(int port) throws Exception {
@@ -45,10 +49,12 @@ public class Server {
 
 			Logger.log(this.getClass().getSimpleName(), "The server is ready on port: " + port);
 
-			clientChannel.configureBlocking(false);
-			loop.register(clientChannel, new WebSocketSession(Server.this.getClientHandler(), true));
+			if (this.clientChannel != null) {
+				this.clientChannel.configureBlocking(false);
+				loop.register(clientChannel, new WebSocketSession(Server.this.getClientHandler(), true));
+				this.manager.setClientChannel(clientChannel);
+			}
 
-			this.manager.setClientChannel(clientChannel);
 			this.manager.start();
 
 			loop.join();
