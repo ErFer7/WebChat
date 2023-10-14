@@ -3,9 +3,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.ufsc</groupId>
-    <artifactId>ine5418</artifactId>
+    <artifactId>webchat</artifactId>
     <version>0.1</version>
-    <name>INE5418</name>
+    <name>WebChat</name>
     <packaging>pom</packaging>
 
     <properties>
