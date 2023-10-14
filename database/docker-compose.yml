@@ -1,0 +1,15 @@
+version: '3.1'
+
+services:
+  db:
+    image: postgres
+    container_name: webchat_db
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_DB: webchat_db
+      POSTGRES_USER: webchat_db_user
+      POSTGRES_PASSWORD: webchat_db_password
+    volumes:
+      - ./scripts:/docker-entrypoint-initdb.d
+    restart: always
