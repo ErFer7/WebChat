@@ -1,0 +1,5 @@
+{
+  "gatewayHost": "127.0.0.1",
+  "gatewayPort": 8080,
+  "applicationPort": 8081
+}

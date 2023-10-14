@@ -7,6 +7,7 @@ import com.ufsc.ine5418.protocol.enums.OperationType;
 import com.ufsc.ine5418.protocol.enums.PayloadType;
 import com.ufsc.ine5418.protocol.enums.Status;
 import com.ufsc.ine5418.protocol.utils.FieldParser;
+import com.ufsc.ine5418.utils.Logger;
 
 public class Packet {
 
@@ -43,7 +44,7 @@ public class Packet {
 			this.payloadType = PayloadType.valueOf(jsonPacket.getString("payloadType"));
 			this.payload = FieldParser.nullableFieldToJSONObject(jsonPacket, "payload");
 		} catch (Exception e) {
-			System.out.println("[Packet] Error parsing packet: " + e.getMessage());
+			Logger.log(this.getClass().getSimpleName(), "Error parsing packet: " + e.getMessage());
 		}
 	}
 
@@ -52,6 +53,9 @@ public class Packet {
 
 		jsonPacket.put("host", this.host);
 		jsonPacket.put("hostType", this.hostType);
+		jsonPacket.put("token", this.token != null ? this.token : JSONObject.NULL);
+		jsonPacket.put("status", this.status != null ? this.status : JSONObject.NULL);
+		jsonPacket.put("operationType", this.operationType);
 		jsonPacket.put("payloadType", this.payloadType);
 		jsonPacket.put("payload", this.payload != null ? this.payload : JSONObject.NULL);
 
