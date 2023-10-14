@@ -13,4 +13,13 @@
     <version>0.1</version>
     <name>INE5418 - Gateway</name>
     <description>Gateway</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.ufsc.common</groupId>
+            <artifactId>common</artifactId>
+            <version>0.1</version>
+            <scope>compile</scope>
+        </dependency>
+    </dependencies>
 </project>

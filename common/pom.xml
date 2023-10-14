@@ -8,17 +8,9 @@
     <version>0.1</version>
   </parent>
 
-  <groupId>com.ufsc.server</groupId>
-  <artifactId>server</artifactId>
+  <groupId>com.ufsc.common</groupId>
+  <artifactId>common</artifactId>
   <version>0.1</version>
-  <name>INE5418 - Backend</name>
-  <description>Backend</description>
-
-  <dependencies>
-    <dependency>
-      <groupId>com.ufsc.database</groupId>
-      <artifactId>database</artifactId>
-      <version>0.1</version>
-    </dependency>
-  </dependencies>
+  <name>INE5418 - Common</name>
+  <description>Common</description>
 </project>
