@@ -5,24 +5,25 @@ import java.net.InetSocketAddress;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.snf4j.core.SelectorLoop;
 import org.snf4j.websocket.AbstractWebSocketSessionFactory;
 import org.snf4j.websocket.IWebSocketHandler;
 import org.snf4j.websocket.WebSocketSession;
 
-import com.ufsc.webchat.utils.Logger;
-
 public class Server {
 
 	private final ServerHandler serverHandler;
 	private final ClientHandler clientHandler;
-	private final Manager manager;
+	private final ManagerThread managerThread;
 	private final SocketChannel clientChannel;
+	private static final Logger logger = LoggerFactory.getLogger(Server.class);
 
-	public Server(ServerHandler serverHandler, ClientHandler clientHandler, Manager manager) throws IOException {
+	public Server(ServerHandler serverHandler, ClientHandler clientHandler, ManagerThread managerThread) throws IOException {
 		this.serverHandler = serverHandler;
 		this.clientHandler = clientHandler;
-		this.manager = manager;
+		this.managerThread = managerThread;
 		this.clientChannel = clientHandler != null ? SocketChannel.open() : null;
 	}
 
@@ -47,21 +48,21 @@ public class Server {
 				}
 			}).sync();
 
-			Logger.log(this.getClass().getSimpleName(), "The server is ready on port: " + port);
+			logger.info("The server is ready on port: {}", port);
 
 			if (this.clientChannel != null) {
 				this.clientChannel.configureBlocking(false);
-				loop.register(clientChannel, new WebSocketSession(Server.this.getClientHandler(), true));
-				this.clientHandler.setClientChannel(clientChannel);
+				loop.register(this.clientChannel, new WebSocketSession(Server.this.getClientHandler(), true));
+				this.clientHandler.setClientChannel(this.clientChannel);
 			}
 
-			if (this.manager != null) {
-				this.manager.start();
+			if (this.managerThread != null) {
+				this.managerThread.start();
 			}
 
 			loop.join();
 		} catch (Exception exception) {
-			Logger.log(this.getClass().getSimpleName(), "Exception: " + exception.getMessage());
+			logger.error("Exception: {}", exception.getMessage());
 		} finally {
 			loop.stop();
 		}

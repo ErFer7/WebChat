@@ -7,11 +7,15 @@
     </appender>
 
     <logger name="com.zaxxer.hikari" level="INFO">
-        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="CONSOLE"/>
     </logger>
 
     <logger name="org.hibernate.SQL" level="DEBUG">
-        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
+    <logger name="com.ufsc">
+        <appender-ref ref="CONSOLE"/>
     </logger>
 
 </configuration>

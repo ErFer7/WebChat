@@ -1,17 +1,19 @@
 package com.ufsc.webchat;
 
-import com.ufsc.webchat.config.NetworkConfiguration;
+import static java.lang.Integer.parseInt;
+
+import com.ufsc.webchat.config.PropertyLoader;
 import com.ufsc.webchat.server.GatewayServerHandler;
 import com.ufsc.webchat.server.Server;
 
 public class WebChatGateway {
 
 	public static void main(String[] args) throws Exception {
-		NetworkConfiguration config = new NetworkConfiguration();
+		PropertyLoader.loadAndSetSystemProperties("config/network.properties");
 
-		GatewayServerHandler gatewayServerHandler = new GatewayServerHandler(config.getGatewayIdentifier(), config.getGatewayPassword());
-		Server webServer = new Server(gatewayServerHandler);
+		GatewayServerHandler serverHandler = new GatewayServerHandler();
+		Server webServer = new Server(serverHandler);
 
-		webServer.start(config.getGatewayPort());
+		webServer.start(parseInt(System.getProperty("gatewayPort")));
 	}
 }

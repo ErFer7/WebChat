@@ -1,5 +1,7 @@
 package com.ufsc.webchat.server;
 
+import static java.lang.System.getProperty;
+
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.HashMap;
@@ -22,11 +24,11 @@ public class GatewayServerHandler extends ServerHandler {
 	private final SecureRandom secureRandom;
 	private final Base64.Encoder encoder;
 
-	public GatewayServerHandler(String gatewayIdentifier, String gatewayPassword) {
-		super(new PacketFactory(HostType.GATEWAY));;
+	public GatewayServerHandler() {
+		super(new PacketFactory(HostType.GATEWAY));
 
-		this.gatewayIdentifier = gatewayIdentifier;
-		this.gatewayPassword = gatewayPassword;
+		this.gatewayIdentifier = getProperty("gatewayIdentifier");
+		this.gatewayPassword = getProperty("gatewayPassword");
 		this.applicationServersTokens = new HashMap<>();
 		this.secureRandom = new SecureRandom();
 		this.encoder = Base64.getUrlEncoder();
@@ -56,18 +58,13 @@ public class GatewayServerHandler extends ServerHandler {
 			String identifier = payload.getString("identifier");
 			String password = payload.getString("password");
 
-			Status status = null;
-			String token = null;
-
 			if (identifier.equals(this.gatewayIdentifier) && password.equals(this.gatewayPassword)) {
-				token = this.generateToken();
+				String token = this.generateToken();
 				this.applicationServersTokens.put(host, token);
-				status = Status.OK;
+				this.sendPacket(host, this.packetFactory.createGatewayConnectionResponse(Status.OK, token));
 			} else {
-				status = Status.ERROR;
+				this.sendPacket(host, this.packetFactory.createGatewayConnectionResponse(Status.ERROR, null));
 			}
-
-			this.sendPacket(host, packetFactory.createGatewayConnectionResponse(status, this.generateToken()));
 		}
 	}
 
@@ -83,7 +80,7 @@ public class GatewayServerHandler extends ServerHandler {
 		this.secureRandom.setSeed(System.currentTimeMillis());
 
 		byte[] randomBytes = new byte[24];
-		secureRandom.nextBytes(randomBytes);
+		this.secureRandom.nextBytes(randomBytes);
 		return this.encoder.encodeToString(randomBytes);
 	}
 }

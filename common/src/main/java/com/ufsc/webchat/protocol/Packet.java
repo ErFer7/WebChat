@@ -1,13 +1,14 @@
 package com.ufsc.webchat.protocol;
 
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.ufsc.webchat.protocol.enums.HostType;
 import com.ufsc.webchat.protocol.enums.OperationType;
 import com.ufsc.webchat.protocol.enums.PayloadType;
 import com.ufsc.webchat.protocol.enums.Status;
 import com.ufsc.webchat.protocol.utils.FieldParser;
-import com.ufsc.webchat.utils.Logger;
 
 public class Packet {
 
@@ -18,6 +19,8 @@ public class Packet {
 	private OperationType operationType;
 	private PayloadType payloadType;
 	private JSONObject payload;
+
+	private static final Logger logger = LoggerFactory.getLogger(Packet.class);
 
 	public Packet(String host, HostType type, String token, Status status, OperationType operationType, PayloadType payloadType, JSONObject payload) {
 		this.host = host;
@@ -44,11 +47,11 @@ public class Packet {
 			this.payloadType = PayloadType.valueOf(jsonPacket.getString("payloadType"));
 			this.payload = FieldParser.nullableFieldToJSONObject(jsonPacket, "payload");
 		} catch (Exception exception) {
-			Logger.log(this.getClass().getSimpleName(), "Error parsing packet: " + exception.getMessage());
+			logger.error("Error parsing packet: {}", exception.getMessage());
 		}
 	}
 
-	public String toString() {
+	@Override public String toString() {
 		JSONObject jsonPacket = new JSONObject();
 
 		jsonPacket.put("host", this.host);
@@ -63,30 +66,30 @@ public class Packet {
 	}
 
 	public String getHost() {
-		return host;
+		return this.host;
 	}
 
 	public HostType getHostType() {
-		return hostType;
+		return this.hostType;
 	}
 
 	public String getToken() {
-		return token;
+		return this.token;
 	}
 
 	public Status getStatus() {
-		return status;
+		return this.status;
 	}
 
 	public OperationType getOperationType() {
-		return operationType;
+		return this.operationType;
 	}
 
 	public PayloadType getPayloadType() {
-		return payloadType;
+		return this.payloadType;
 	}
 
 	public JSONObject getPayload() {
-		return payload;
+		return this.payload;
 	}
 }
