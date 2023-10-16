@@ -45,4 +45,22 @@ public class PacketFactory {
 
 		return this.createPacket(status, OperationType.RESPONSE, PayloadType.CONNECTION, payload);
 	}
+
+	public Packet createRoutingRequest(String userId, String token) {
+		JSONObject payload = new JSONObject();
+
+		payload.put("userId", userId);
+		payload.put("token", token);
+
+		return this.createPacket(null, OperationType.REQUEST, PayloadType.ROUTING, payload);
+	}
+
+	public Packet createRoutingResponse(Status status, String userId, String token) {
+		JSONObject payload = new JSONObject();
+
+		payload.put("userId", userId);
+		payload.put("token", token);
+
+		return this.createPacket(status, OperationType.RESPONSE, PayloadType.ROUTING, payload);
+	}
 }
