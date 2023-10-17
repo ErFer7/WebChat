@@ -16,11 +16,11 @@ public class Server {
 
 	private final ServerHandler serverHandler;
 	private final ClientHandler clientHandler;
-	private final ManagerThread managerThread;
+	private final Thread managerThread;
 	private final SocketChannel clientChannel;
 	private static final Logger logger = LoggerFactory.getLogger(Server.class);
 
-	public Server(ServerHandler serverHandler, ClientHandler clientHandler, ManagerThread managerThread) throws IOException {
+	public Server(ServerHandler serverHandler, ClientHandler clientHandler, Thread managerThread) throws IOException {
 		this.serverHandler = serverHandler;
 		this.clientHandler = clientHandler;
 		this.managerThread = managerThread;

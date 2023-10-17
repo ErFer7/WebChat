@@ -11,7 +11,7 @@ import com.ufsc.webchat.protocol.Packet;
 
 public abstract class Handler extends AbstractWebSocketHandler {
 
-	private ManagerThread managerThread;
+	private Thread managerThread;
 
 	private static final Logger logger = LoggerFactory.getLogger(Handler.class);
 
@@ -40,11 +40,11 @@ public abstract class Handler extends AbstractWebSocketHandler {
 		}
 	}
 
-	public void setManager(ManagerThread managerThread) {
+	public void setManager(Thread managerThread) {
 		this.managerThread = managerThread;
 	}
 
-	public ManagerThread getManager() {
+	public Thread getManager() {
 		return this.managerThread;
 	}
 

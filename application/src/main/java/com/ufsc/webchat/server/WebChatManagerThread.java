@@ -14,7 +14,7 @@ import com.ufsc.webchat.protocol.PacketFactory;
 import com.ufsc.webchat.protocol.enums.HostType;
 import com.ufsc.webchat.protocol.enums.Status;
 
-public class WebChatManagerThread extends ManagerThread {
+public class WebChatManagerThread extends Thread {
 
 	private final WebChatServerHandler serverHandler;  // TODO: usar
 	private final WebChatClientHandler clientHandler;

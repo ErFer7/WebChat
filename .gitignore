@@ -24,3 +24,7 @@ buildNumber.properties
 
 ### VS Code ###
 .vscode/
+
+### build ###
+out/
+META-INF/
