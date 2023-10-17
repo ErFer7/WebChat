@@ -28,6 +28,8 @@ public class WebChatManagerThread extends Thread {
 	private static final Logger logger = LoggerFactory.getLogger(WebChatManagerThread.class);
 
 	public WebChatManagerThread(WebChatServerHandler serverHandler, WebChatClientHandler clientHandler) {
+		super("manager-thread");
+
 		this.serverHandler = serverHandler;
 		this.clientHandler = clientHandler;
 		this.gatewayHost = this.clientHandler.getGatewayHost();
