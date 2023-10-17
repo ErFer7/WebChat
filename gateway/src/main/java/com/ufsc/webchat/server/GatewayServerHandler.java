@@ -1,12 +1,15 @@
 package com.ufsc.webchat.server;
 
+import static java.lang.System.getProperty;
+
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Set;
 
-import com.ufsc.webchat.utils.Logger;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.snf4j.websocket.IWebSocketSession;
 
 import com.ufsc.webchat.protocol.Packet;
@@ -26,12 +29,13 @@ public class GatewayServerHandler extends ServerHandler {
 	private final HashMap<String, Integer> appServersConnectionsCount;
 	private final SecureRandom secureRandom;
 	private final Base64.Encoder encoder;
+	private static final Logger logger = LoggerFactory.getLogger(GatewayServerHandler.class);
 
-	public GatewayServerHandler(String gatewayIdentifier, String gatewayPassword) {
-		super(new PacketFactory(HostType.GATEWAY));;
+	public GatewayServerHandler() {
+		super(new PacketFactory(HostType.GATEWAY));
 
-		this.gatewayIdentifier = gatewayIdentifier;
-		this.gatewayPassword = gatewayPassword;
+		this.gatewayIdentifier = getProperty("gatewayIdentifier");
+		this.gatewayPassword = getProperty("gatewayPassword");
 		this.applicationServersTokens = new HashMap<>();
 		this.clientApplicationMap = new HashMap<>();  // maps user ids to Application Servers
 		this.tempClientUserHost = new HashMap<>();  // temporary maps user id to host IP
@@ -64,19 +68,14 @@ public class GatewayServerHandler extends ServerHandler {
 			String identifier = payload.getString("identifier");
 			String password = payload.getString("password");
 
-			Status status = null;
-			String token = null;
-
 			if (identifier.equals(this.gatewayIdentifier) && password.equals(this.gatewayPassword)) {
-				token = this.generateToken();
+				String token = this.generateToken();
 				this.applicationServersTokens.put(host, token);
 				this.appServersConnectionsCount.put(host, 0);
-				status = Status.OK;
+				this.sendPacket(host, this.packetFactory.createGatewayConnectionResponse(Status.OK, token));
 			} else {
-				status = Status.ERROR;
+				this.sendPacket(host, this.packetFactory.createGatewayConnectionResponse(Status.ERROR, null));
 			}
-
-			this.sendPacket(host, packetFactory.createGatewayConnectionResponse(status, this.generateToken()));
 		} else if (packet.getOperationType() == OperationType.RESPONSE && packet.getPayloadType() == PayloadType.ROUTING) {
 			String appHost = packet.getHost();
 			JSONObject payload = packet.getPayload();
@@ -96,7 +95,7 @@ public class GatewayServerHandler extends ServerHandler {
 				token = payload.getString("token");
 			} else {
 				// try with other server?
-				Logger.log(this.getClass().getSimpleName(), "Application routing failed");
+				logger.warn("Application routing failed");
 				status = Status.ERROR;
 			}
 
@@ -132,7 +131,7 @@ public class GatewayServerHandler extends ServerHandler {
 		this.secureRandom.setSeed(System.currentTimeMillis());
 
 		byte[] randomBytes = new byte[24];
-		secureRandom.nextBytes(randomBytes);
+		this.secureRandom.nextBytes(randomBytes);
 		return this.encoder.encodeToString(randomBytes);
 	}
 

@@ -7,14 +7,15 @@ import java.util.HashMap;
 import java.util.concurrent.Semaphore;
 
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.ufsc.webchat.protocol.Packet;
 import com.ufsc.webchat.protocol.PacketFactory;
 import com.ufsc.webchat.protocol.enums.HostType;
 import com.ufsc.webchat.protocol.enums.Status;
-import com.ufsc.webchat.utils.Logger;
 
-public class WebChatManager extends Manager {
+public class WebChatManagerThread extends Thread {
 
 	private final WebChatServerHandler serverHandler;  // TODO: usar
 	private final WebChatClientHandler clientHandler;
@@ -25,9 +26,12 @@ public class WebChatManager extends Manager {
 	private final Semaphore registerSemaphore;
 	private final String gatewayIdentifier;
 	private final String gatewayPassword;
+	private static final Logger logger = LoggerFactory.getLogger(WebChatManagerThread.class);
 	private final HashMap<String, String> userIdTokenMap;
 
-	public WebChatManager(WebChatServerHandler serverHandler, WebChatClientHandler clientHandler, String gatewayIdentifier, String gatewayPassword) {
+	public WebChatManagerThread(WebChatServerHandler serverHandler, WebChatClientHandler clientHandler) {
+		super("manager-thread");
+
 		this.serverHandler = serverHandler;
 		this.clientHandler = clientHandler;
 		this.gatewayHost = this.clientHandler.getGatewayHost();
@@ -35,14 +39,14 @@ public class WebChatManager extends Manager {
 		this.packetFactory = new PacketFactory(HostType.APPLICATION);
 		this.registered = false;
 		this.registerSemaphore = new Semaphore(0);
-		this.gatewayIdentifier = gatewayIdentifier;
-		this.gatewayPassword = gatewayPassword;
+		this.gatewayIdentifier = System.getProperty("gatewayIdentifier");
+		this.gatewayPassword = System.getProperty("gatewayPassword");
 		this.userIdTokenMap = new HashMap<>();
 	}
 
 	@Override
 	public void run() {
-		Logger.log(this.getClass().getSimpleName(), "Thread started");
+		logger.info("Thread started");
 
 		boolean connected = this.connectToGateway();
 
@@ -55,7 +59,7 @@ public class WebChatManager extends Manager {
 			this.packetFactory.setHost(this.clientHandler.getSession().getLocalAddress().toString());
 			this.clientHandler.getReadySemaphore().release();
 		} catch (Exception exception) {
-			Logger.log(this.getClass().getSimpleName(), "Exception: " + exception.getMessage());
+			logger.error("Exception: {}", exception.getMessage());
 			return;
 		}
 
@@ -76,7 +80,7 @@ public class WebChatManager extends Manager {
 	}
 
 	private void sendConnectionRequest() {
-		Logger.log(this.getClass().getSimpleName(), "Sending connection request to gateway");
+		logger.info("Sending connection request to gateway");
 
 		Packet packet = this.packetFactory.createGatewayConnectionRequest(this.gatewayIdentifier, this.gatewayPassword);
 
@@ -92,13 +96,13 @@ public class WebChatManager extends Manager {
 	public void receiveConnectionResponse(Packet packet) {
 
 		if (packet.getStatus() == Status.OK) {
-			Logger.log(this.getClass().getSimpleName(), "Gateway authentication successful");
+			logger.info("Gateway authentication successful");
 			this.registered = true;
 			JSONObject payload = packet.getPayload();
 
 			this.packetFactory.setToken(payload.getString("token"));
 		} else {
-			Logger.log(this.getClass().getSimpleName(), "Gateway authentication failed");
+			logger.warn("Gateway authentication failed");
 		}
 
 		this.registerSemaphore.release();
@@ -125,26 +129,26 @@ public class WebChatManager extends Manager {
 		int waitTime = 1000;
 
 		while (!this.clientHandler.getClientChannel().isConnected()) {
-			Logger.log(this.getClass().getSimpleName(), "Trying to connect to gateway");
+			logger.info("Trying to connect to gateway");
 
 			try {
 				this.clientHandler.getClientChannel().connect(new InetSocketAddress(InetAddress.getByName(this.gatewayHost), this.gatewayPort));
-				Logger.log(this.getClass().getSimpleName(), "Connected to gateway");
+				logger.info("Connected to gateway");
 				return true;
 			} catch (IOException ioException) {
-				Logger.log(this.getClass().getSimpleName(), "Exception: " + ioException.getMessage());
+				logger.error("Exception: {}", ioException.getMessage());
 
 				tries++;
 
 				if (tries >= maxRetries) {
-					Logger.log(this.getClass().getSimpleName(), "Could not connect to gateway");
+					logger.error("Could not connect to gateway");
 					return false;
 				}
 
 				try {
 					sleep(waitTime);
 				} catch (InterruptedException interruptedException) {
-					Logger.log(this.getClass().getSimpleName(), "Exception: " + interruptedException.getMessage());
+					logger.error("Exception: {}", interruptedException.getMessage());
 				}
 			}
 		}

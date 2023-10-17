@@ -1,14 +1,16 @@
 package com.ufsc.webchat.server;
 
+import static java.lang.Integer.parseInt;
+import static java.lang.System.getProperty;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.concurrent.Semaphore;
 
-import com.ufsc.webchat.protocol.enums.OperationType;
-import com.ufsc.webchat.protocol.enums.PayloadType;
 import org.snf4j.websocket.IWebSocketSession;
 
 import com.ufsc.webchat.protocol.Packet;
+import com.ufsc.webchat.protocol.enums.PayloadType;
 
 public class WebChatClientHandler extends ClientHandler {
 
@@ -16,21 +18,21 @@ public class WebChatClientHandler extends ClientHandler {
 	private final int gatewayPort;
 	private final Semaphore readySemaphore;
 
-	public WebChatClientHandler(String gatewayHost, int gatewayPort) throws URISyntaxException, InterruptedException {
-		super(new URI("ws://" + gatewayHost + ":" + gatewayPort));
+	public WebChatClientHandler() throws URISyntaxException, InterruptedException {
+		super(new URI("ws://" + getProperty("gatewayHost") + ":" + parseInt(getProperty("gatewayPort"))));
 
 		this.readySemaphore = new Semaphore(1);
 		this.readySemaphore.acquire();
-		this.gatewayHost = gatewayHost;
-		this.gatewayPort = gatewayPort;
+		this.gatewayHost = getProperty("gatewayHost");
+		this.gatewayPort = parseInt(getProperty("gatewayPort"));
 	}
 
 	@Override
 	public void readPacket(Packet packet) {
 		if (packet.getPayloadType() == PayloadType.CONNECTION) {
-			((WebChatManager) this.getManager()).receiveConnectionResponse(packet);
+			((WebChatManagerThread) this.getManager()).receiveConnectionResponse(packet);
 		} else if (packet.getPayloadType() == PayloadType.ROUTING) {
-			((WebChatManager) this.getManager()).receiveRoutingRequest(packet);
+			((WebChatManagerThread) this.getManager()).receiveRoutingRequest(packet);
 		}
 	}
 
@@ -41,14 +43,14 @@ public class WebChatClientHandler extends ClientHandler {
 	}
 
 	public String getGatewayHost() {
-		return gatewayHost;
+		return this.gatewayHost;
 	}
 
 	public int getGatewayPort() {
-		return gatewayPort;
+		return this.gatewayPort;
 	}
 
 	public Semaphore getReadySemaphore() {
-		return readySemaphore;
+		return this.readySemaphore;
 	}
 }

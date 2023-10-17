@@ -1,30 +1,31 @@
 package com.ufsc.webchat;
 
+import static java.lang.Integer.parseInt;
+
 import com.ufsc.database.EntityManagerProvider;
-import com.ufsc.database.PropertyLoader;
-import com.ufsc.webchat.config.NetworkConfiguration;
+import com.ufsc.webchat.config.PropertyLoader;
 import com.ufsc.webchat.server.Server;
 import com.ufsc.webchat.server.WebChatClientHandler;
-import com.ufsc.webchat.server.WebChatManager;
+import com.ufsc.webchat.server.WebChatManagerThread;
 import com.ufsc.webchat.server.WebChatServerHandler;
 
 public class WebChatApplication {
 
 	public static void main(String[] args) throws Exception {
 		PropertyLoader.loadAndSetSystemProperties("config/application.properties");
+		PropertyLoader.loadAndSetSystemProperties("config/network.properties");
+
 		EntityManagerProvider.init();
 
-		NetworkConfiguration config = new NetworkConfiguration();
+		WebChatServerHandler serverHandler = new WebChatServerHandler();
+		WebChatClientHandler clientHandler = new WebChatClientHandler();
+		WebChatManagerThread managerThread = new WebChatManagerThread(serverHandler, clientHandler);
 
-		WebChatServerHandler webChatServerHandler = new WebChatServerHandler();
-		WebChatClientHandler webChatClientHandler = new WebChatClientHandler(config.getGatewayHost(), config.getGatewayPort());
-		WebChatManager webChatManager = new WebChatManager(webChatServerHandler, webChatClientHandler, config.getGatewayIdentifier(), config.getGatewayPassword());
+		serverHandler.setManager(managerThread);
+		clientHandler.setManager(managerThread);
 
-		webChatServerHandler.setManager(webChatManager);
-		webChatClientHandler.setManager(webChatManager);
+		Server webServer = new Server(serverHandler, clientHandler, managerThread);
 
-		Server webServer = new Server(webChatServerHandler, webChatClientHandler, webChatManager);
-
-		webServer.start(config.getApplicationPort());
+		webServer.start(parseInt(System.getProperty("applicationPort")));
 	}
 }

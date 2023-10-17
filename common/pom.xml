@@ -1,16 +1,17 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
 
-  <parent>
-    <groupId>com.ufsc</groupId>
-    <artifactId>webchat</artifactId>
+    <parent>
+        <groupId>com.ufsc</groupId>
+        <artifactId>webchat</artifactId>
+        <version>0.1</version>
+    </parent>
+
+    <groupId>com.ufsc.common</groupId>
+    <artifactId>common</artifactId>
     <version>0.1</version>
-  </parent>
+    <name>WebChat - Common</name>
+    <description>Common</description>
 
-  <groupId>com.ufsc.common</groupId>
-  <artifactId>common</artifactId>
-  <version>0.1</version>
-  <name>WebChat - Common</name>
-  <description>Common</description>
 </project>
