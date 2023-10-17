@@ -1,5 +1,7 @@
 package com.ufsc.webchat.server;
 
+import static java.util.Objects.isNull;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -14,19 +16,16 @@ public abstract class ServerHandler extends Handler {
 
 	protected final PacketFactory packetFactory;
 	protected final ConcurrentMap<String, IStreamSession> sessions;
-	private boolean packetFactoryHostSet;
-
 
 	public ServerHandler(PacketFactory packetFactory) {
-		this.sessions = new ConcurrentHashMap<String, IStreamSession>();
+		this.sessions = new ConcurrentHashMap<>();
 		this.packetFactory = packetFactory;
-		this.packetFactoryHostSet = false;
 	}
 
-	public abstract void readPacket(Packet packet);
+	@Override public abstract void readPacket(Packet packet);
 
 	public void sendPacket(String host, Packet packet) {
-		IStreamSession session = sessions.get(host);
+		IStreamSession session = this.sessions.get(host);
 		session.writenf(new TextFrame(packet.toString()));
 	}
 
@@ -34,19 +33,18 @@ public abstract class ServerHandler extends Handler {
 	protected void sessionReady(IWebSocketSession session) {
 		super.sessionReady(session);
 
-		if (!this.packetFactoryHostSet) {
+		if (isNull(this.packetFactory.getHost())) {
 			this.packetFactory.setHost(session.getLocalAddress().toString());
-			this.packetFactoryHostSet = true;
 		}
 
 		session.getAttributes().put("user-id", session.getRemoteAddress());
-		sessions.put(session.getRemoteAddress().toString(), session);
+		this.sessions.put(session.getRemoteAddress().toString(), session);
 	}
 
 	@Override
 	protected void sessionClosed(IWebSocketSession session) {
 		super.sessionClosed(session);
 
-		sessions.remove(session.getRemoteAddress().toString());
+		this.sessions.remove(session.getRemoteAddress().toString());
 	}
 }

@@ -17,6 +17,10 @@ public class PacketFactory {
 		this.hostType = hostType;
 	}
 
+	public String getHost() {
+		return this.host;
+	}
+
 	public void setHost(String host) {
 		this.host = host;
 	}
@@ -45,4 +49,5 @@ public class PacketFactory {
 
 		return this.createPacket(status, OperationType.RESPONSE, PayloadType.CONNECTION, payload);
 	}
+
 }
