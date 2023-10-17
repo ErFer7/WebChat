@@ -4,6 +4,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.concurrent.Semaphore;
 
+import com.ufsc.webchat.protocol.enums.OperationType;
+import com.ufsc.webchat.protocol.enums.PayloadType;
 import org.snf4j.websocket.IWebSocketSession;
 
 import com.ufsc.webchat.protocol.Packet;
@@ -25,7 +27,11 @@ public class WebChatClientHandler extends ClientHandler {
 
 	@Override
 	public void readPacket(Packet packet) {
-		((WebChatManager) this.getManager()).receiveConnectionResponse(packet);
+		if (packet.getPayloadType() == PayloadType.CONNECTION) {
+			((WebChatManager) this.getManager()).receiveConnectionResponse(packet);
+		} else if (packet.getPayloadType() == PayloadType.ROUTING) {
+			((WebChatManager) this.getManager()).receiveRoutingRequest(packet);
+		}
 	}
 
 	@Override

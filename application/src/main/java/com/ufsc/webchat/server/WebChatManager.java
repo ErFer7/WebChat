@@ -3,6 +3,7 @@ package com.ufsc.webchat.server;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.HashMap;
 import java.util.concurrent.Semaphore;
 
 import org.json.JSONObject;
@@ -24,6 +25,7 @@ public class WebChatManager extends Manager {
 	private final Semaphore registerSemaphore;
 	private final String gatewayIdentifier;
 	private final String gatewayPassword;
+	private final HashMap<String, String> userIdTokenMap;
 
 	public WebChatManager(WebChatServerHandler serverHandler, WebChatClientHandler clientHandler, String gatewayIdentifier, String gatewayPassword) {
 		this.serverHandler = serverHandler;
@@ -35,6 +37,7 @@ public class WebChatManager extends Manager {
 		this.registerSemaphore = new Semaphore(0);
 		this.gatewayIdentifier = gatewayIdentifier;
 		this.gatewayPassword = gatewayPassword;
+		this.userIdTokenMap = new HashMap<>();
 	}
 
 	@Override
@@ -99,6 +102,21 @@ public class WebChatManager extends Manager {
 		}
 
 		this.registerSemaphore.release();
+	}
+
+	public void receiveRoutingRequest(Packet packet) {
+		String host = packet.getHost();
+		JSONObject payload = packet.getPayload();
+
+		String userId = payload.getString("userId");
+		String token = payload.getString("token");
+		Status status = Status.OK;
+
+		this.userIdTokenMap.put(userId, token);
+
+		Packet newPacket = this.packetFactory.createRoutingResponse(status, userId, token);
+
+		this.clientHandler.sendPacket(newPacket);
 	}
 
 	private boolean connectToGateway() {
