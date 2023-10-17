@@ -101,7 +101,7 @@ public class GatewayServerHandler extends ServerHandler {
 				status = Status.ERROR;
 			}
 
-			this.sendPacket(userHost, packetFactory.createRoutingResponse(status, userId, token));
+			this.sendPacket(userHost, packetFactory.createClientRoutingResponse(status, userId, token));
 		}
 	}
 
@@ -121,7 +121,7 @@ public class GatewayServerHandler extends ServerHandler {
 
 			String server = chooseServer();
 
-			this.sendPacket(server, packetFactory.createRoutingRequest(identifier, token));
+			this.sendPacket(server, packetFactory.createClientRoutingRequest(identifier, token));
 		}
 	}
 

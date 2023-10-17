@@ -119,7 +119,7 @@ public class WebChatManagerThread extends Thread {
 
 		this.userIdTokenMap.put(userId, token);
 
-		Packet newPacket = this.packetFactory.createRoutingResponse(status, userId, token);
+		Packet newPacket = this.packetFactory.createClientRoutingResponse(status, userId, token);
 
 		this.clientHandler.sendPacket(newPacket);
 	}

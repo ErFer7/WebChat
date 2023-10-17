@@ -50,7 +50,7 @@ public class PacketFactory {
 		return this.createPacket(status, OperationType.RESPONSE, PayloadType.CONNECTION, payload);
 	}
 
-	public Packet createRoutingRequest(String userId, String token) {
+	public Packet createClientRoutingRequest(String userId, String token) {
 		JSONObject payload = new JSONObject();
 
 		payload.put("userId", userId);
@@ -59,7 +59,7 @@ public class PacketFactory {
 		return this.createPacket(null, OperationType.REQUEST, PayloadType.ROUTING, payload);
 	}
 
-	public Packet createRoutingResponse(Status status, String userId, String token) {
+	public Packet createClientRoutingResponse(Status status, String userId, String token) {
 		JSONObject payload = new JSONObject();
 
 		payload.put("userId", userId);
