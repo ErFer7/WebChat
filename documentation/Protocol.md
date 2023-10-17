@@ -130,13 +130,16 @@ sequenceDiagram
 
 ```json
 {
-    "host": "[ip:port]",
-    "hostType": "APPLICATION",
-    "token": null,
-    "status": "[status]",
-    "operationType": "RESPONSE",
-    "payloadType": "ROUTING",
-    "payload": null
+  "host": "[ip:port]",
+  "hostType": "APPLICATION",
+  "token": null,
+  "status": "[status]",
+  "operationType": "RESPONSE",
+  "payloadType": "ROUTING",
+  "payload": {
+    "userId": "[id]",
+    "token": "[token]"
+  }
 }
 ```
 

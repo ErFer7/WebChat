@@ -3,6 +3,7 @@ package com.ufsc.webchat.server;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.HashMap;
 import java.util.concurrent.Semaphore;
 
 import org.json.JSONObject;
@@ -12,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import com.ufsc.webchat.protocol.Packet;
 import com.ufsc.webchat.protocol.PacketFactory;
 import com.ufsc.webchat.protocol.enums.HostType;
+import com.ufsc.webchat.protocol.enums.PayloadType;
 import com.ufsc.webchat.protocol.enums.Status;
 
 public class WebChatManagerThread extends Thread {
@@ -26,6 +28,7 @@ public class WebChatManagerThread extends Thread {
 	private final String gatewayIdentifier;
 	private final String gatewayPassword;
 	private static final Logger logger = LoggerFactory.getLogger(WebChatManagerThread.class);
+	private final HashMap<String, String> userIdTokenMap;
 
 	public WebChatManagerThread(WebChatServerHandler serverHandler, WebChatClientHandler clientHandler) {
 		super("manager-thread");
@@ -39,6 +42,7 @@ public class WebChatManagerThread extends Thread {
 		this.registerSemaphore = new Semaphore(0);
 		this.gatewayIdentifier = System.getProperty("gatewayIdentifier");
 		this.gatewayPassword = System.getProperty("gatewayPassword");
+		this.userIdTokenMap = new HashMap<>();
 	}
 
 	@Override
@@ -64,7 +68,7 @@ public class WebChatManagerThread extends Thread {
 			if (this.clientHandler.getClientChannel().isConnected()) {
 				// TODO: Implementar o fluxo de retry e controle do token
 				if (!this.registered) {
-					this.sendConnectionRequest();
+					this.sendGatewayConnectionRequest();
 				}
 			} else {
 				connected = this.connectToGateway();
@@ -76,7 +80,7 @@ public class WebChatManagerThread extends Thread {
 		}
 	}
 
-	private void sendConnectionRequest() {
+	private void sendGatewayConnectionRequest() {
 		logger.info("Sending connection request to gateway");
 
 		Packet packet = this.packetFactory.createGatewayConnectionRequest(this.gatewayIdentifier, this.gatewayPassword);
@@ -90,7 +94,7 @@ public class WebChatManagerThread extends Thread {
 		}
 	}
 
-	public void receiveConnectionResponse(Packet packet) {
+	public void receiveGatewayConnectionResponse(Packet packet) {
 
 		if (packet.getStatus() == Status.OK) {
 			logger.info("Gateway authentication successful");
@@ -103,6 +107,29 @@ public class WebChatManagerThread extends Thread {
 		}
 
 		this.registerSemaphore.release();
+	}
+
+	public void receiveClientRoutingRequest(Packet packet) {
+		String host = packet.getHost();
+		JSONObject payload = packet.getPayload();
+
+		String userId = payload.getString("userId");
+		String token = payload.getString("token");
+		Status status = Status.OK;
+
+		this.userIdTokenMap.put(userId, token);
+
+		Packet newPacket = this.packetFactory.createClientRoutingResponse(status, userId, token);
+
+		this.clientHandler.sendPacket(newPacket);
+	}
+
+	public void processGatewayPackets(Packet packet) {
+		if (packet.getPayloadType() == PayloadType.CONNECTION) {
+			this.receiveGatewayConnectionResponse(packet);
+		} else if (packet.getPayloadType() == PayloadType.ROUTING) {
+			this.receiveClientRoutingRequest(packet);
+		}
 	}
 
 	private boolean connectToGateway() {
