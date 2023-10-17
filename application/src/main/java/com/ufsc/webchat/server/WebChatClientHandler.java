@@ -10,7 +10,7 @@ import java.util.concurrent.Semaphore;
 import org.snf4j.websocket.IWebSocketSession;
 
 import com.ufsc.webchat.protocol.Packet;
-import com.ufsc.webchat.protocol.enums.PayloadType;
+import com.ufsc.webchat.protocol.enums.HostType;
 
 public class WebChatClientHandler extends ClientHandler {
 
@@ -29,10 +29,10 @@ public class WebChatClientHandler extends ClientHandler {
 
 	@Override
 	public void readPacket(Packet packet) {
-		if (packet.getPayloadType() == PayloadType.CONNECTION) {
-			((WebChatManagerThread) this.getManager()).receiveConnectionResponse(packet);
-		} else if (packet.getPayloadType() == PayloadType.ROUTING) {
-			((WebChatManagerThread) this.getManager()).receiveRoutingRequest(packet);
+		if (packet.getHostType() == HostType.GATEWAY) {
+			((WebChatManagerThread) this.getManager()).processGatewayPackets(packet);
+		} else if (packet.getHostType() == HostType.APPLICATION) {
+			//
 		}
 	}
 

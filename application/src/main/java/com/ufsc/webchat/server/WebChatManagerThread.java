@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import com.ufsc.webchat.protocol.Packet;
 import com.ufsc.webchat.protocol.PacketFactory;
 import com.ufsc.webchat.protocol.enums.HostType;
+import com.ufsc.webchat.protocol.enums.PayloadType;
 import com.ufsc.webchat.protocol.enums.Status;
 
 public class WebChatManagerThread extends Thread {
@@ -67,7 +68,7 @@ public class WebChatManagerThread extends Thread {
 			if (this.clientHandler.getClientChannel().isConnected()) {
 				// TODO: Implementar o fluxo de retry e controle do token
 				if (!this.registered) {
-					this.sendConnectionRequest();
+					this.sendGatewayConnectionRequest();
 				}
 			} else {
 				connected = this.connectToGateway();
@@ -79,7 +80,7 @@ public class WebChatManagerThread extends Thread {
 		}
 	}
 
-	private void sendConnectionRequest() {
+	private void sendGatewayConnectionRequest() {
 		logger.info("Sending connection request to gateway");
 
 		Packet packet = this.packetFactory.createGatewayConnectionRequest(this.gatewayIdentifier, this.gatewayPassword);
@@ -93,7 +94,7 @@ public class WebChatManagerThread extends Thread {
 		}
 	}
 
-	public void receiveConnectionResponse(Packet packet) {
+	public void receiveGatewayConnectionResponse(Packet packet) {
 
 		if (packet.getStatus() == Status.OK) {
 			logger.info("Gateway authentication successful");
@@ -108,7 +109,7 @@ public class WebChatManagerThread extends Thread {
 		this.registerSemaphore.release();
 	}
 
-	public void receiveRoutingRequest(Packet packet) {
+	public void receiveClientRoutingRequest(Packet packet) {
 		String host = packet.getHost();
 		JSONObject payload = packet.getPayload();
 
@@ -121,6 +122,14 @@ public class WebChatManagerThread extends Thread {
 		Packet newPacket = this.packetFactory.createRoutingResponse(status, userId, token);
 
 		this.clientHandler.sendPacket(newPacket);
+	}
+
+	public void processGatewayPackets(Packet packet) {
+		if (packet.getPayloadType() == PayloadType.CONNECTION) {
+			this.receiveGatewayConnectionResponse(packet);
+		} else if (packet.getPayloadType() == PayloadType.ROUTING) {
+			this.receiveClientRoutingRequest(packet);
+		}
 	}
 
 	private boolean connectToGateway() {

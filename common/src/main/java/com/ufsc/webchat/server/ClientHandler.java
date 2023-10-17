@@ -3,6 +3,8 @@ package com.ufsc.webchat.server;
 import java.net.URI;
 import java.nio.channels.SocketChannel;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.snf4j.core.EndingAction;
 import org.snf4j.websocket.DefaultWebSocketSessionConfig;
 import org.snf4j.websocket.IWebSocketSessionConfig;
@@ -14,13 +16,18 @@ public abstract class ClientHandler extends Handler {
 
 	private final URI uri;
 	private SocketChannel clientChannel;
+	private static final Logger logger = LoggerFactory.getLogger(ClientHandler.class);
 
 	public ClientHandler(URI uri) {
 		this.uri = uri;
 	}
 
 	public void sendPacket(Packet packet) {
-		this.getSession().writenf(new TextFrame(packet.toString()));
+		try {
+			this.getSession().writenf(new TextFrame(packet.toString()));
+		} catch (Exception e) {
+			logger.error("Error while sending packet: {}", packet);
+		}
 	}
 
 	@Override

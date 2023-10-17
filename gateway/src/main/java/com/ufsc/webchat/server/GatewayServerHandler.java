@@ -1,11 +1,13 @@
 package com.ufsc.webchat.server;
 
 import static java.lang.System.getProperty;
+import static java.util.Collections.min;
 
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.HashMap;
-import java.util.Set;
+import java.util.Map;
+import java.util.Objects;
 
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -135,18 +137,15 @@ public class GatewayServerHandler extends ServerHandler {
 		return this.encoder.encodeToString(randomBytes);
 	}
 
-	private String chooseServer() {  // dummy way to choose server
-		Set<String> servers = this.appServersConnectionsCount.keySet();
-		int smallestValue = Integer.MAX_VALUE;
-		String lessUsedHost = "";
+	private String chooseServer() {
+		Integer minimum = min(this.appServersConnectionsCount.values());
 
-		for (String key : servers) {
-			int currentValue = this.appServersConnectionsCount.get(key);
-			if (currentValue < smallestValue) {
-				smallestValue = currentValue;
-				lessUsedHost = key;
+		for (Map.Entry<String, Integer> entry : this.appServersConnectionsCount.entrySet()) {
+			if (Objects.equals(entry.getValue(), minimum)) {
+				return entry.getKey();
 			}
 		}
-		return  lessUsedHost;
+
+		return null;
 	}
 }
