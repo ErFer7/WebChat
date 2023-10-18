@@ -37,11 +37,11 @@ public class Server {
 		try {
 			loop.start();
 
-			ServerSocketChannel serverChannel = ServerSocketChannel.open();
-			serverChannel.configureBlocking(false);
-			serverChannel.socket().bind(new InetSocketAddress(port));
+			ServerSocketChannel externalChannel = ServerSocketChannel.open();
+			externalChannel.configureBlocking(false);
+			externalChannel.socket().bind(new InetSocketAddress(port));
 
-			loop.register(serverChannel, new AbstractWebSocketSessionFactory() {
+			loop.register(externalChannel, new AbstractWebSocketSessionFactory() {
 				@Override
 				protected IWebSocketHandler createHandler(SocketChannel channel) {
 					return Server.this.getExternalHandler();
