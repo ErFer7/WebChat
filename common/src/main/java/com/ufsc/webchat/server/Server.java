@@ -14,20 +14,20 @@ import org.snf4j.websocket.WebSocketSession;
 
 public class Server {
 
-	private final ServerHandler serverHandler;
-	private final ClientHandler clientHandler;
+	private final Handler serverHandler;
+	private final Handler clientHandler;
 	private final Thread managerThread;
 	private final SocketChannel clientChannel;
 	private static final Logger logger = LoggerFactory.getLogger(Server.class);
 
-	public Server(ServerHandler serverHandler, ClientHandler clientHandler, Thread managerThread) throws IOException {
+	public Server(Handler serverHandler, Handler clientHandler, Thread managerThread) throws IOException {
 		this.serverHandler = serverHandler;
 		this.clientHandler = clientHandler;
 		this.managerThread = managerThread;
 		this.clientChannel = clientHandler != null ? SocketChannel.open() : null;
 	}
 
-	public Server(ServerHandler serverHandler) throws IOException {
+	public Server(Handler serverHandler) throws IOException {
 		this(serverHandler, null, null);
 	}
 
@@ -53,7 +53,7 @@ public class Server {
 			if (this.clientChannel != null) {
 				this.clientChannel.configureBlocking(false);
 				loop.register(this.clientChannel, new WebSocketSession(Server.this.getClientHandler(), true));
-				this.clientHandler.setClientChannel(this.clientChannel);
+				this.clientHandler.setInternalChannel(this.clientChannel);
 			}
 
 			if (this.managerThread != null) {
@@ -68,11 +68,11 @@ public class Server {
 		}
 	}
 
-	public ServerHandler getServerHandler() {
+	public Handler getServerHandler() {
 		return this.serverHandler;
 	}
 
-	public ClientHandler getClientHandler() {
+	public Handler getClientHandler() {
 		return this.clientHandler;
 	}
 }

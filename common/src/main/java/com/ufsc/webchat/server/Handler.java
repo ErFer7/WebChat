@@ -1,19 +1,32 @@
 package com.ufsc.webchat.server;
 
+import java.nio.channels.SocketChannel;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snf4j.core.handler.SessionEvent;
+import org.snf4j.core.session.IStreamSession;
 import org.snf4j.websocket.AbstractWebSocketHandler;
 import org.snf4j.websocket.IWebSocketSession;
 import org.snf4j.websocket.frame.TextFrame;
 
 import com.ufsc.webchat.protocol.Packet;
+import com.ufsc.webchat.utils.OptionalKeyPairMap;
 
 public abstract class Handler extends AbstractWebSocketHandler {
 
-	private Thread managerThread;
-
+	private SocketChannel internalChannel;
+	protected Thread managerThread;
+	protected final OptionalKeyPairMap<String, String, IStreamSession> sessions;
 	private static final Logger logger = LoggerFactory.getLogger(Handler.class);
+
+	protected Handler() {
+		this.sessions = new OptionalKeyPairMap<>();
+	}
+
+	public void setManagerThread(Thread managerThread) {
+		this.managerThread = managerThread;
+	}
 
 	@Override
 	public void read(Object frame) {
@@ -26,6 +39,15 @@ public abstract class Handler extends AbstractWebSocketHandler {
 	}
 
 	public abstract void readPacket(Packet packet);
+
+	public void sendPacket(String host, Packet packet) {
+		try {
+			IStreamSession session = this.sessions.getBySecondKey(host);
+			session.writenf(new TextFrame(packet.toString()));
+		} catch (Exception e) {
+			logger.error("Error while sending packet: {}", packet);
+		}
+	}
 
 	@Override
 	public void event(SessionEvent event) {
@@ -40,14 +62,6 @@ public abstract class Handler extends AbstractWebSocketHandler {
 		}
 	}
 
-	public void setManager(Thread managerThread) {
-		this.managerThread = managerThread;
-	}
-
-	public Thread getManager() {
-		return this.managerThread;
-	}
-
 	protected void sessionCreated(IWebSocketSession session) {
 		logger.info("Session created: {}", session.getLocalAddress());
 	}
@@ -58,13 +72,26 @@ public abstract class Handler extends AbstractWebSocketHandler {
 
 	protected void sessionReady(IWebSocketSession session) {
 		logger.info("Session ready: {}", session.getLocalAddress());
+
+		session.getAttributes().put("user-id", session.getRemoteAddress());
+		this.sessions.put(session.getName(), session.getRemoteAddress().toString(), session);
 	}
 
 	protected void sessionClosed(IWebSocketSession session) {
 		logger.info("Session closed: {}", session.getLocalAddress());
+
+		this.sessions.removeByFirstKey(session.getName());
 	}
 
 	protected void sessionEnding(IWebSocketSession session) {
 		logger.info("Session ending: {}", session.getLocalAddress());
+	}
+
+	public void setInternalChannel(SocketChannel internalChannel) {
+		this.internalChannel = internalChannel;
+	}
+
+	public SocketChannel getInternalChannel() {
+		return internalChannel;
 	}
 }

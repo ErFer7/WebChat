@@ -7,19 +7,23 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.concurrent.Semaphore;
 
+import org.snf4j.core.EndingAction;
+import org.snf4j.websocket.DefaultWebSocketSessionConfig;
 import org.snf4j.websocket.IWebSocketSession;
+import org.snf4j.websocket.IWebSocketSessionConfig;
 
 import com.ufsc.webchat.protocol.Packet;
 import com.ufsc.webchat.protocol.enums.HostType;
 
-public class WebChatClientHandler extends ClientHandler {
+public class InternalHandler extends Handler {
 
+	private final URI uri;
 	private final String gatewayHost;
 	private final int gatewayPort;
 	private final Semaphore readySemaphore;
 
-	public WebChatClientHandler() throws URISyntaxException, InterruptedException {
-		super(new URI("ws://" + getProperty("gatewayHost") + ":" + parseInt(getProperty("gatewayPort"))));
+	public InternalHandler() throws URISyntaxException, InterruptedException {
+		this.uri = new URI("ws://" + getProperty("gatewayHost") + ":" + parseInt(getProperty("gatewayPort")));
 
 		this.readySemaphore = new Semaphore(1);
 		this.readySemaphore.acquire();
@@ -28,11 +32,19 @@ public class WebChatClientHandler extends ClientHandler {
 	}
 
 	@Override
+	public IWebSocketSessionConfig getConfig() {
+		DefaultWebSocketSessionConfig config = new DefaultWebSocketSessionConfig(this.uri);
+		config.setEndingAction(EndingAction.STOP);
+
+		return config;
+	}
+
+	@Override
 	public void readPacket(Packet packet) {
 		if (packet.getHostType() == HostType.GATEWAY) {
-			((WebChatManagerThread) this.getManager()).processGatewayPackets(packet);
+			((ManagerThread) this.managerThread).processGatewayPackets(packet);
 		} else if (packet.getHostType() == HostType.APPLICATION) {
-			//
+			((ManagerThread) this.managerThread).processApplicationPackets(packet);
 		}
 	}
 

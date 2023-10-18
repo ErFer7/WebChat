@@ -24,29 +24,29 @@ import com.ufsc.webchat.protocol.enums.OperationType;
 import com.ufsc.webchat.protocol.enums.PayloadType;
 import com.ufsc.webchat.protocol.enums.Status;
 
-public class GatewayServerHandler extends ServerHandler {
+public class ServerHandler extends Handler {
 
+	private final PacketFactory packetFactory;
 	private final String gatewayIdentifier;
 	private final String gatewayPassword;
-	private final HashMap<String, String> applicationServersTokens;
-	private final HashMap<Long, String> tempClientUserHost;
-	private final HashMap<Long, String> clientApplicationMap;
-	private final HashMap<String, Integer> appServersConnectionsCount;
+	private final HashMap<String, String> applicationHostTokenMap;
+	private final HashMap<Long, String> clientIdHostMap;
+	private final HashMap<Long, String> clientIdApplicationMap;
+	private final HashMap<String, Integer> applicationConnectionsCount;
 	private final SecureRandom secureRandom;
 	private final Base64.Encoder encoder;
 
 	private final UserService userService = new UserService();
-	private static final Logger logger = LoggerFactory.getLogger(GatewayServerHandler.class);
+	private static final Logger logger = LoggerFactory.getLogger(ServerHandler.class);
 
-	public GatewayServerHandler() {
-		super(new PacketFactory(HostType.GATEWAY));
-
+	public ServerHandler() {
+		this.packetFactory = new PacketFactory(HostType.GATEWAY);
 		this.gatewayIdentifier = getProperty("gatewayIdentifier");
 		this.gatewayPassword = getProperty("gatewayPassword");
-		this.applicationServersTokens = new HashMap<>();
-		this.clientApplicationMap = new HashMap<>();  // maps user ids to Application Servers
-		this.tempClientUserHost = new HashMap<>();  // temporary maps user id to host IP
-		this.appServersConnectionsCount = new HashMap<>();
+		this.applicationHostTokenMap = new HashMap<>();
+		this.clientIdApplicationMap = new HashMap<>();  // maps user ids to Application Servers
+		this.clientIdHostMap = new HashMap<>();  // temporary maps user id to host IP
+		this.applicationConnectionsCount = new HashMap<>();
 		this.secureRandom = new SecureRandom();
 		this.encoder = Base64.getUrlEncoder();
 	}
@@ -61,20 +61,29 @@ public class GatewayServerHandler extends ServerHandler {
 	}
 
 	@Override
+	protected void sessionReady(IWebSocketSession session) {
+		super.sessionReady(session);
+
+		if (isNull(this.packetFactory.getHost())) {
+			this.packetFactory.setHost(session.getLocalAddress().toString());
+		}
+	}
+
+	@Override
 	protected void sessionClosed(IWebSocketSession session) {
 		super.sessionClosed(session);
-		this.applicationServersTokens.remove(session.getRemoteAddress().toString());
+		this.applicationHostTokenMap.remove(session.getRemoteAddress().toString());
 	}
 
 	private void processApplicationPackets(Packet packet) {
 		if (packet.getOperationType() == OperationType.REQUEST && packet.getPayloadType() == PayloadType.CONNECTION) {
-			this.processApplicationConnectionRequest(packet);
+			this.receiveApplicationConnectionRequest(packet);
 		} else if (packet.getOperationType() == OperationType.RESPONSE && packet.getPayloadType() == PayloadType.ROUTING) {
-			this.processApplicationRoutingResponse(packet);
+			this.receiveApplicationRoutingResponse(packet);
 		}
 	}
 
-	private void processApplicationConnectionRequest(Packet packet) {
+	private void receiveApplicationConnectionRequest(Packet packet) {
 		String host = packet.getHost();
 		JSONObject payload = packet.getPayload();
 
@@ -83,24 +92,24 @@ public class GatewayServerHandler extends ServerHandler {
 
 		if (identifier.equals(this.gatewayIdentifier) && password.equals(this.gatewayPassword)) {
 			String token = this.generateToken();
-			this.applicationServersTokens.put(host, token);
-			this.appServersConnectionsCount.put(host, 0);
+			this.applicationHostTokenMap.put(host, token);
+			this.applicationConnectionsCount.put(host, 0);
 			this.sendPacket(host, this.packetFactory.createGatewayConnectionResponse(Status.OK, token));
 		} else {
 			this.sendPacket(host, this.packetFactory.createGatewayConnectionResponse(Status.ERROR, null));
 		}
 	}
 
-	private void processApplicationRoutingResponse(Packet packet) {
+	private void receiveApplicationRoutingResponse(Packet packet) {
 		String appAddr = packet.getHost();
 		JSONObject payload = packet.getPayload();
 		Long userId = payload.getLong("userId");
-		String userHost = this.tempClientUserHost.remove(userId);
+		String userHost = this.clientIdHostMap.remove(userId);
 
 		if (packet.getStatus() == Status.OK) {
-			Integer count = this.appServersConnectionsCount.get(appAddr) + 1;
-			this.appServersConnectionsCount.put(appAddr, count);
-			this.clientApplicationMap.put(userId, appAddr);
+			Integer count = this.applicationConnectionsCount.get(appAddr) + 1;
+			this.applicationConnectionsCount.put(appAddr, count);
+			this.clientIdApplicationMap.put(userId, appAddr);
 			this.sendPacket(userHost, this.packetFactory.createClientRoutingResponse(Status.OK, userId, payload.getString("token")));
 		} else {
 			// TODO: try with another server?
@@ -110,26 +119,37 @@ public class GatewayServerHandler extends ServerHandler {
 	}
 
 	private void processClientPackets(Packet packet) {
-		String clientAddr = packet.getHost();
 		if (packet.getOperationType() == OperationType.REQUEST) {
 			if (packet.getPayloadType() == PayloadType.ROUTING) {
-				Long userId = this.userService.login(packet.getPayload());
-				if (isNull(userId)) {
-					this.sendPacket(clientAddr, this.packetFactory.createClientLoginErrorResponse());
-				} else {
-					this.tempClientUserHost.put(userId, clientAddr);
-					String server = this.chooseServer();
-					this.sendPacket(server, this.packetFactory.createClientRoutingRequest(userId, this.generateToken()));
-				}
-			} else if (packet.getPayloadType() == PayloadType.REGISTER_USER) {
-				Answer answer = this.userService.register(packet.getPayload());
-				this.sendPacket(clientAddr, this.packetFactory.createClientRegisterUserResponse(answer.status(), answer.message()));
+				this.receiveClientRoutingRequest(packet);
+			} else if (packet.getPayloadType() == PayloadType.USER_CREATION) {
+				this.receiveClientRegisterRequest(packet);
 			}
 		}
 	}
 
+	private void receiveClientRoutingRequest(Packet packet) {
+		String clientAddr = packet.getHost();
+
+		Long userId = this.userService.login(packet.getPayload());
+		if (isNull(userId)) {
+			this.sendPacket(clientAddr, this.packetFactory.createClientLoginErrorResponse());
+		} else {
+			this.clientIdHostMap.put(userId, clientAddr);
+			String server = this.chooseServer();
+			this.sendPacket(server, this.packetFactory.createClientRoutingRequest(userId, this.generateToken()));
+		}
+	}
+
+	private void receiveClientRegisterRequest(Packet packet) {
+		String clientAddr = packet.getHost();
+
+		Answer answer = this.userService.register(packet.getPayload());
+		this.sendPacket(clientAddr, this.packetFactory.createClientRegisterUserResponse(answer.status(), answer.message()));
+	}
+
 	private boolean authenticate(String host, String token) {
-		return this.applicationServersTokens.get(host).equals(token);
+		return this.applicationHostTokenMap.get(host).equals(token);
 	}
 
 	private String generateToken() {
@@ -141,9 +161,9 @@ public class GatewayServerHandler extends ServerHandler {
 	}
 
 	private String chooseServer() {
-		Integer minimum = min(this.appServersConnectionsCount.values());
+		Integer minimum = min(this.applicationConnectionsCount.values());
 
-		for (Map.Entry<String, Integer> entry : this.appServersConnectionsCount.entrySet()) {
+		for (Map.Entry<String, Integer> entry : this.applicationConnectionsCount.entrySet()) {
 			if (Objects.equals(entry.getValue(), minimum)) {
 				return entry.getKey();
 			}

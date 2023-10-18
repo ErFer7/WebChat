@@ -171,7 +171,9 @@ sequenceDiagram
     "status": null,
     "operationType": "REQUEST",
     "payloadType": "CONNECTION",
-    "payload": null
+    "payload": {
+      "userId": "[id]"
+    }
 }
 ```
 

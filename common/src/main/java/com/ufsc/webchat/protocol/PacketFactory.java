@@ -68,10 +68,14 @@ public class PacketFactory {
 		return this.createPacket(status, OperationType.RESPONSE, PayloadType.ROUTING, payload);
 	}
 
+	public Packet createClientConnectionResponse(Status status) {
+		return this.createPacket(status, OperationType.RESPONSE, PayloadType.CONNECTION, null);
+	}
+
 	public Packet createClientRegisterUserResponse(Status status, String message) {
 		JSONObject payload = new JSONObject();
 		payload.put("message", message);
-		return this.createPacket(status, OperationType.RESPONSE, PayloadType.REGISTER_USER, payload);
+		return this.createPacket(status, OperationType.RESPONSE, PayloadType.USER_CREATION, payload);
 	}
 
 	public Packet createClientLoginErrorResponse() {
