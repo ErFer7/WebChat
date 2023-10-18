@@ -2,6 +2,7 @@ package com.ufsc.webchat.server;
 
 import static java.lang.System.getProperty;
 import static java.util.Collections.min;
+import static java.util.Objects.isNull;
 
 import java.security.SecureRandom;
 import java.util.Base64;
@@ -14,6 +15,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snf4j.websocket.IWebSocketSession;
 
+import com.ufsc.webchat.database.service.Answer;
+import com.ufsc.webchat.database.service.UserService;
 import com.ufsc.webchat.protocol.Packet;
 import com.ufsc.webchat.protocol.PacketFactory;
 import com.ufsc.webchat.protocol.enums.HostType;
@@ -26,11 +29,13 @@ public class GatewayServerHandler extends ServerHandler {
 	private final String gatewayIdentifier;
 	private final String gatewayPassword;
 	private final HashMap<String, String> applicationServersTokens;
-	private final HashMap<String, String> tempClientUserHost;
-	private final HashMap<String, String> clientApplicationMap;
+	private final HashMap<Long, String> tempClientUserHost;
+	private final HashMap<Long, String> clientApplicationMap;
 	private final HashMap<String, Integer> appServersConnectionsCount;
 	private final SecureRandom secureRandom;
 	private final Base64.Encoder encoder;
+
+	private final UserService userService = new UserService();
 	private static final Logger logger = LoggerFactory.getLogger(GatewayServerHandler.class);
 
 	public GatewayServerHandler() {
@@ -61,67 +66,65 @@ public class GatewayServerHandler extends ServerHandler {
 		this.applicationServersTokens.remove(session.getRemoteAddress().toString());
 	}
 
-	// TODO: Refactor
 	private void processApplicationPackets(Packet packet) {
 		if (packet.getOperationType() == OperationType.REQUEST && packet.getPayloadType() == PayloadType.CONNECTION) {
-			String host = packet.getHost();
-			JSONObject payload = packet.getPayload();
-
-			String identifier = payload.getString("identifier");
-			String password = payload.getString("password");
-
-			if (identifier.equals(this.gatewayIdentifier) && password.equals(this.gatewayPassword)) {
-				String token = this.generateToken();
-				this.applicationServersTokens.put(host, token);
-				this.appServersConnectionsCount.put(host, 0);
-				this.sendPacket(host, this.packetFactory.createGatewayConnectionResponse(Status.OK, token));
-			} else {
-				this.sendPacket(host, this.packetFactory.createGatewayConnectionResponse(Status.ERROR, null));
-			}
+			this.processApplicationConnectionRequest(packet);
 		} else if (packet.getOperationType() == OperationType.RESPONSE && packet.getPayloadType() == PayloadType.ROUTING) {
-			String appHost = packet.getHost();
-			JSONObject payload = packet.getPayload();
+			this.processApplicationRoutingResponse(packet);
+		}
+	}
 
-			String userId = payload.getString("userId");
+	private void processApplicationConnectionRequest(Packet packet) {
+		String host = packet.getHost();
+		JSONObject payload = packet.getPayload();
 
-			Status status = null;
-			String token = null;
+		String identifier = payload.getString("identifier");
+		String password = payload.getString("password");
 
-			String userHost = this.tempClientUserHost.remove(userId);
+		if (identifier.equals(this.gatewayIdentifier) && password.equals(this.gatewayPassword)) {
+			String token = this.generateToken();
+			this.applicationServersTokens.put(host, token);
+			this.appServersConnectionsCount.put(host, 0);
+			this.sendPacket(host, this.packetFactory.createGatewayConnectionResponse(Status.OK, token));
+		} else {
+			this.sendPacket(host, this.packetFactory.createGatewayConnectionResponse(Status.ERROR, null));
+		}
+	}
 
-			if (packet.getStatus() == Status.OK) {
-				Integer count = this.appServersConnectionsCount.get(appHost) + 1;
-				this.appServersConnectionsCount.put(appHost, count);
-				this.clientApplicationMap.put(userId, appHost);
-				status = Status.OK;
-				token = payload.getString("token");
-			} else {
-				// try with other server?
-				logger.warn("Application routing failed");
-				status = Status.ERROR;
-			}
+	private void processApplicationRoutingResponse(Packet packet) {
+		String appAddr = packet.getHost();
+		JSONObject payload = packet.getPayload();
+		Long userId = payload.getLong("userId");
+		String userHost = this.tempClientUserHost.remove(userId);
 
-			this.sendPacket(userHost, packetFactory.createClientRoutingResponse(status, userId, token));
+		if (packet.getStatus() == Status.OK) {
+			Integer count = this.appServersConnectionsCount.get(appAddr) + 1;
+			this.appServersConnectionsCount.put(appAddr, count);
+			this.clientApplicationMap.put(userId, appAddr);
+			this.sendPacket(userHost, this.packetFactory.createClientRoutingResponse(Status.OK, userId, payload.getString("token")));
+		} else {
+			// TODO: try with another server?
+			logger.warn("Application routing failed");
+			this.sendPacket(userHost, this.packetFactory.createClientRoutingResponse(Status.ERROR, userId, null));
 		}
 	}
 
 	private void processClientPackets(Packet packet) {
-		if (packet.getOperationType() == OperationType.REQUEST && packet.getPayloadType() == PayloadType.ROUTING) {
-			String client = packet.getHost();
-			JSONObject payload = packet.getPayload();
-
-			String identifier = payload.getString("identifier");
-			String password = payload.getString("password");
-
-			String token = null;
-
-			// TODO: get id from database, user authentication
-			token = this.generateToken();
-			this.tempClientUserHost.put(identifier, client);
-
-			String server = chooseServer();
-
-			this.sendPacket(server, packetFactory.createClientRoutingRequest(identifier, token));
+		String clientAddr = packet.getHost();
+		if (packet.getOperationType() == OperationType.REQUEST) {
+			if (packet.getPayloadType() == PayloadType.ROUTING) {
+				Long userId = this.userService.login(packet.getPayload());
+				if (isNull(userId)) {
+					this.sendPacket(clientAddr, this.packetFactory.createClientLoginErrorResponse());
+				} else {
+					this.tempClientUserHost.put(userId, clientAddr);
+					String server = this.chooseServer();
+					this.sendPacket(server, this.packetFactory.createClientRoutingRequest(userId, this.generateToken()));
+				}
+			} else if (packet.getPayloadType() == PayloadType.REGISTER_USER) {
+				Answer answer = this.userService.register(packet.getPayload());
+				this.sendPacket(clientAddr, this.packetFactory.createClientRegisterUserResponse(answer.status(), answer.message()));
+			}
 		}
 	}
 

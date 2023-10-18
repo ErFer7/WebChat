@@ -28,7 +28,7 @@ public class WebChatManagerThread extends Thread {
 	private final String gatewayIdentifier;
 	private final String gatewayPassword;
 	private static final Logger logger = LoggerFactory.getLogger(WebChatManagerThread.class);
-	private final HashMap<String, String> userIdTokenMap;
+	private final HashMap<Long, String> userIdTokenMap;
 
 	public WebChatManagerThread(WebChatServerHandler serverHandler, WebChatClientHandler clientHandler) {
 		super("manager-thread");
@@ -95,7 +95,6 @@ public class WebChatManagerThread extends Thread {
 	}
 
 	public void receiveGatewayConnectionResponse(Packet packet) {
-
 		if (packet.getStatus() == Status.OK) {
 			logger.info("Gateway authentication successful");
 			this.registered = true;
@@ -113,7 +112,7 @@ public class WebChatManagerThread extends Thread {
 		String host = packet.getHost();
 		JSONObject payload = packet.getPayload();
 
-		String userId = payload.getString("userId");
+		Long userId = payload.getLong("userId");
 		String token = payload.getString("token");
 		Status status = Status.OK;
 

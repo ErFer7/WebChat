@@ -2,8 +2,8 @@ package com.ufsc.webchat;
 
 import static java.lang.Integer.parseInt;
 
-import com.ufsc.database.EntityManagerProvider;
 import com.ufsc.webchat.config.PropertyLoader;
+import com.ufsc.webchat.database.EntityManagerProvider;
 import com.ufsc.webchat.server.Server;
 import com.ufsc.webchat.server.WebChatClientHandler;
 import com.ufsc.webchat.server.WebChatManagerThread;

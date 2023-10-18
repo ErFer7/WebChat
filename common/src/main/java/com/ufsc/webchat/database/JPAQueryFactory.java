@@ -1,4 +1,4 @@
-package com.ufsc.database;
+package com.ufsc.webchat.database;
 
 import com.querydsl.jpa.impl.JPAQuery;
 
