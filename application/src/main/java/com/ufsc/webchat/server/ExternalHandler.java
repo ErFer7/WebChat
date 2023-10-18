@@ -10,7 +10,7 @@ public class ExternalHandler extends Handler {
 		if (packet.getHostType() == HostType.CLIENT) {
 			((ManagerThread) this.managerThread).processClientPackets(packet);
 		} else if (packet.getHostType() == HostType.APPLICATION) {
-			//
+			((ManagerThread) this.managerThread).processApplicationPackets(packet);
 		}
 	}
 }
