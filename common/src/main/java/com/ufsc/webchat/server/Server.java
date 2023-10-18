@@ -14,17 +14,17 @@ import org.snf4j.websocket.WebSocketSession;
 
 public class Server {
 
-	private final Handler serverHandler;
-	private final Handler clientHandler;
+	private final Handler externalHandler;
+	private final Handler internalHandler;
 	private final Thread managerThread;
-	private final SocketChannel clientChannel;
+	private final SocketChannel internalChannel;
 	private static final Logger logger = LoggerFactory.getLogger(Server.class);
 
-	public Server(Handler serverHandler, Handler clientHandler, Thread managerThread) throws IOException {
-		this.serverHandler = serverHandler;
-		this.clientHandler = clientHandler;
+	public Server(Handler externalHandler, Handler internalHandler, Thread managerThread) throws IOException {
+		this.externalHandler = externalHandler;
+		this.internalHandler = internalHandler;
 		this.managerThread = managerThread;
-		this.clientChannel = clientHandler != null ? SocketChannel.open() : null;
+		this.internalChannel = internalHandler != null ? SocketChannel.open() : null;
 	}
 
 	public Server(Handler serverHandler) throws IOException {
@@ -44,16 +44,16 @@ public class Server {
 			loop.register(serverChannel, new AbstractWebSocketSessionFactory() {
 				@Override
 				protected IWebSocketHandler createHandler(SocketChannel channel) {
-					return Server.this.getServerHandler();
+					return Server.this.getExternalHandler();
 				}
 			}).sync();
 
 			logger.info("The server is ready on port: {}", port);
 
-			if (this.clientChannel != null) {
-				this.clientChannel.configureBlocking(false);
-				loop.register(this.clientChannel, new WebSocketSession(Server.this.getClientHandler(), true));
-				this.clientHandler.setInternalChannel(this.clientChannel);
+			if (this.internalChannel != null) {
+				this.internalChannel.configureBlocking(false);
+				loop.register(this.internalChannel, new WebSocketSession(Server.this.getInternalHandler(), true));
+				this.internalHandler.setInternalChannel(this.internalChannel);
 			}
 
 			if (this.managerThread != null) {
@@ -68,11 +68,11 @@ public class Server {
 		}
 	}
 
-	public Handler getServerHandler() {
-		return this.serverHandler;
+	public Handler getExternalHandler() {
+		return this.externalHandler;
 	}
 
-	public Handler getClientHandler() {
-		return this.clientHandler;
+	public Handler getInternalHandler() {
+		return this.internalHandler;
 	}
 }
