@@ -40,7 +40,7 @@ def create_register_packet():
 socket = websocket.create_connection('ws://127.0.0.1:8080')
 
 
-socket.send(create_register_packet())
+socket.send(create_login_packet())
 print(socket.recv())
 
 socket.close()

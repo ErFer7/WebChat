@@ -50,7 +50,7 @@ public class PacketFactory {
 		return this.createPacket(status, OperationType.RESPONSE, PayloadType.CONNECTION, payload);
 	}
 
-	public Packet createClientRoutingRequest(String userId, String token) {
+	public Packet createClientRoutingRequest(Long userId, String token) {
 		JSONObject payload = new JSONObject();
 
 		payload.put("userId", userId);
@@ -59,7 +59,7 @@ public class PacketFactory {
 		return this.createPacket(null, OperationType.REQUEST, PayloadType.ROUTING, payload);
 	}
 
-	public Packet createClientRoutingResponse(Status status, String userId, String token) {
+	public Packet createClientRoutingResponse(Status status, Long userId, String token) {
 		JSONObject payload = new JSONObject();
 
 		payload.put("userId", userId);
@@ -72,6 +72,12 @@ public class PacketFactory {
 		JSONObject payload = new JSONObject();
 		payload.put("message", message);
 		return this.createPacket(status, OperationType.RESPONSE, PayloadType.REGISTER_USER, payload);
+	}
+
+	public Packet createClientLoginErrorResponse() {
+		JSONObject payload = new JSONObject();
+		payload.put("message", "Falha no login, usuário não encontrado ou senha incorreta.");
+		return this.createPacket(Status.ERROR, OperationType.RESPONSE, PayloadType.ROUTING, payload);
 	}
 
 }

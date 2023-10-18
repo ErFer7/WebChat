@@ -2,6 +2,7 @@ package com.ufsc.webchat.server;
 
 import static java.lang.System.getProperty;
 import static java.util.Collections.min;
+import static java.util.Objects.isNull;
 
 import java.security.SecureRandom;
 import java.util.Base64;
@@ -28,8 +29,8 @@ public class GatewayServerHandler extends ServerHandler {
 	private final String gatewayIdentifier;
 	private final String gatewayPassword;
 	private final HashMap<String, String> applicationServersTokens;
-	private final HashMap<String, String> tempClientUserHost;
-	private final HashMap<String, String> clientApplicationMap;
+	private final HashMap<Long, String> tempClientUserHost;
+	private final HashMap<Long, String> clientApplicationMap;
 	private final HashMap<String, Integer> appServersConnectionsCount;
 	private final SecureRandom secureRandom;
 	private final Base64.Encoder encoder;
@@ -91,16 +92,15 @@ public class GatewayServerHandler extends ServerHandler {
 	}
 
 	private void processApplicationRoutingResponse(Packet packet) {
-		String appHost = packet.getHost();
+		String appAddr = packet.getHost();
 		JSONObject payload = packet.getPayload();
-
-		String userId = payload.getString("userId");
+		Long userId = payload.getLong("userId");
 		String userHost = this.tempClientUserHost.remove(userId);
 
 		if (packet.getStatus() == Status.OK) {
-			Integer count = this.appServersConnectionsCount.get(appHost) + 1;
-			this.appServersConnectionsCount.put(appHost, count);
-			this.clientApplicationMap.put(userId, appHost);
+			Integer count = this.appServersConnectionsCount.get(appAddr) + 1;
+			this.appServersConnectionsCount.put(appAddr, count);
+			this.clientApplicationMap.put(userId, appAddr);
 			this.sendPacket(userHost, this.packetFactory.createClientRoutingResponse(Status.OK, userId, payload.getString("token")));
 		} else {
 			// TODO: try with another server?
@@ -110,25 +110,20 @@ public class GatewayServerHandler extends ServerHandler {
 	}
 
 	private void processClientPackets(Packet packet) {
+		String clientAddr = packet.getHost();
 		if (packet.getOperationType() == OperationType.REQUEST) {
 			if (packet.getPayloadType() == PayloadType.ROUTING) {
-				String client = packet.getHost();
-				JSONObject payload = packet.getPayload();
-
-				String identifier = payload.getString("identifier");
-				String password = payload.getString("password");
-				//				this.userService.login(payload);
-
-				// TODO: get id from database, user authentication
-				this.tempClientUserHost.put(identifier, client);
-
-				String server = this.chooseServer();
-				this.sendPacket(server, this.packetFactory.createClientRoutingRequest(identifier, this.generateToken()));
+				Long userId = this.userService.login(packet.getPayload());
+				if (isNull(userId)) {
+					this.sendPacket(clientAddr, this.packetFactory.createClientLoginErrorResponse());
+				} else {
+					this.tempClientUserHost.put(userId, clientAddr);
+					String server = this.chooseServer();
+					this.sendPacket(server, this.packetFactory.createClientRoutingRequest(userId, this.generateToken()));
+				}
 			} else if (packet.getPayloadType() == PayloadType.REGISTER_USER) {
-				String client = packet.getHost();
 				Answer answer = this.userService.register(packet.getPayload());
-
-				this.sendPacket(client, this.packetFactory.createClientRegisterUserResponse(answer.status(), answer.message()));
+				this.sendPacket(clientAddr, this.packetFactory.createClientRegisterUserResponse(answer.status(), answer.message()));
 			}
 		}
 	}
