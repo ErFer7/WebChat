@@ -1,4 +1,4 @@
-package com.ufsc.database.model;
+package com.ufsc.webchat.database.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

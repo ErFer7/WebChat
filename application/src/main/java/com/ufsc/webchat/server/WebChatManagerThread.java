@@ -95,7 +95,6 @@ public class WebChatManagerThread extends Thread {
 	}
 
 	public void receiveGatewayConnectionResponse(Packet packet) {
-
 		if (packet.getStatus() == Status.OK) {
 			logger.info("Gateway authentication successful");
 			this.registered = true;

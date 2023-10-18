@@ -1,4 +1,4 @@
-package com.ufsc.database.model;
+package com.ufsc.webchat.database.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -31,5 +31,17 @@ public class User {
 
 	public String getPasswordHash() {
 		return this.passwordHash;
+	}
+
+	public void setId(Long id) {
+		this.id = id;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public void setPasswordHash(String passwordHash) {
+		this.passwordHash = passwordHash;
 	}
 }
