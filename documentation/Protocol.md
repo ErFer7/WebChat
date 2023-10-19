@@ -103,7 +103,7 @@ sequenceDiagram
     "operationType": "REQUEST",
     "payloadType": "ROUTING",
     "payload": {
-        "identifier": "[id]",
+        "username": "[id]",
         "password": "[password]"
     }
 }
@@ -210,33 +210,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
   Client -->> Gateway: Routing request
-  Gateway ->> Application: Routing request
-  Application ->> Gateway: Routing response
   Gateway -->> Client: Routing response
-  Client ->> Application: Connection request
-  Application ->> Client: Connection response
-  Client ->> Application: Create user request
-  Application ->> Client: Create user response
-```
-
----
-
-### Edição de usuário
-
-```mermaid
-sequenceDiagram
-  Client ->> Application: Edit user request
-  Application ->> Client: Edit user response
-```
-
----
-
-### Criação de uma conversa normal (entre dois usuários)
-
-```mermaid
-sequenceDiagram
-  Client ->> Application: Create normal chat request
-  Application ->> Client: Create normal chat response
 ```
 
 ---
@@ -263,4 +237,38 @@ sequenceDiagram
 
 ### Envio de mensagem
 
-_WIP_
+Cenário em que os dois usuários estão conectados em um mesmo servidor.
+
+```mermaid
+sequenceDiagram
+  Client A ->> Application: Message
+  Application ->> Client A: Response
+  Application ->> Client B: Message
+  Client B ->> Application: Response
+```
+
+Cenário em que os dois usuários estão conectados em servidores diferentes, mas os servidores estão conectados entre si.
+
+```mermaid
+sequenceDiagram
+    Client A ->> Application A: Message
+    Application A ->> Client A: Response
+    Application A ->> Application B: Message
+    Application B ->> Application A: Response
+    Application B ->> Client B: Message
+    Client B ->> Application B: Response
+```
+
+Cenário em que os dois usuários estão conectados em servidores diferentes, mas os servidores não estão conectados entre si.
+
+```mermaid
+sequenceDiagram
+    Client A ->> Application A: Message
+    Application A ->> Client A: Response
+    Application A ->> Gateway: Request application server
+    Gateway ->> Application A: application server host
+    Application A ->> Application B: Request connection with message
+    Application B ->> Application A: Connection and message response
+    Application B ->> Client B: Message
+    Client B ->> Application B: Response
+```

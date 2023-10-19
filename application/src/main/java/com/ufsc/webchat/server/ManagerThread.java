@@ -3,7 +3,11 @@ package com.ufsc.webchat.server;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.Semaphore;
 
 import org.json.JSONObject;
@@ -13,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import com.ufsc.webchat.protocol.Packet;
 import com.ufsc.webchat.protocol.PacketFactory;
 import com.ufsc.webchat.protocol.enums.HostType;
+import com.ufsc.webchat.protocol.enums.PayloadType;
 import com.ufsc.webchat.protocol.enums.Status;
 
 public class ManagerThread extends Thread {
@@ -29,6 +34,7 @@ public class ManagerThread extends Thread {
 	private static final Logger logger = LoggerFactory.getLogger(ManagerThread.class);
 	private final HashMap<Long, String> userIdTokenMap;
 	private final HashMap<Long, String> userIdHostMap;
+	private final HashMap<Long, String> userIdApplicationHostMap;
 
 	public ManagerThread(ExternalHandler serverHandler, InternalHandler clientHandler) {
 		super("manager-thread");
@@ -44,6 +50,7 @@ public class ManagerThread extends Thread {
 		this.gatewayPassword = System.getProperty("gatewayPassword");
 		this.userIdTokenMap = new HashMap<>();
 		this.userIdHostMap = new HashMap<>();
+		this.userIdApplicationHostMap = new HashMap<>();
 	}
 
 	@Override
@@ -146,18 +153,16 @@ public class ManagerThread extends Thread {
 	}
 
 	private void receiveClientConnectionRequest(Packet packet) {
-		JSONObject payload = packet.getPayload();
-
 		String userAddr = packet.getHost();
+		JSONObject payload = packet.getPayload();
 		Long userId = payload.getLong("userId");
 
-		if (this.authenticateClient(userId, packet.getToken())) {
-			userIdHostMap.put(userId, packet.getHost());
-
-			this.serverHandler.sendPacket(userAddr, this.packetFactory.createClientConnectionResponse(Status.OK));
-		} else {
+		if (!this.authenticateClient(userId, packet.getToken())) {
 			this.serverHandler.sendPacket(userAddr, this.packetFactory.createClientConnectionResponse(Status.ERROR));
+			return;
 		}
+
+		this.serverHandler.sendPacket(userAddr, this.packetFactory.createClientConnectionResponse(Status.OK));
 	}
 
 	private void receiveUserListingRequest(Packet packet) {
@@ -177,14 +182,65 @@ public class ManagerThread extends Thread {
 	}
 
 	private void receiveMessage(Packet packet) {
-		// TODO: Implementar o fluxo de envio de mensagens
+		String userAddr = packet.getHost();
+		JSONObject payload = packet.getPayload();
+		Long userId = payload.getLong("userId");
+
+		if (!this.authenticateClient(userId, packet.getToken())) {
+			this.serverHandler.sendPacket(userAddr, this.packetFactory.createAuthenticationErrorResponse(PayloadType.MESSAGE));
+			return;
+		}
+
+		Long chatId = payload.getLong("chatId");
+
+		List<Long> targetUsersIds = new ArrayList<>();  // TODO: Obter todos os usuários da conversa
+		Iterator<Long> userIdsIterator = targetUsersIds.iterator();
+
+		// Envia as mensagens para os usuários da conversa que estão conectados neste servidor
+		while (userIdsIterator.hasNext()) {
+			Long targetUserId = userIdsIterator.next();
+			String host = this.userIdHostMap.get(targetUserId);
+
+			if (host != null) {
+				// TODO: Enviar
+
+				try {
+					userIdsIterator.remove();
+				} catch (ConcurrentModificationException exception) {
+					logger.error("Exception: {}", exception.getMessage());
+				}
+			}
+		}
+
+		userIdsIterator = targetUsersIds.iterator();
+
+		// Envia as mensagens para os servidores que estão conectados com os usuários da conversa
+		while (userIdsIterator.hasNext()) {
+			Long targetUserId = userIdsIterator.next();
+			String applicationHost = this.userIdApplicationHostMap.get(targetUserId);
+
+			if (applicationHost != null) {
+				// TODO: Enviar
+
+				try {
+					userIdsIterator.remove();
+				} catch (ConcurrentModificationException exception) {
+					logger.error("Exception: {}", exception.getMessage());
+				}
+			}
+		}
+
+		// TODO: Enviar request para o gateway para encontrar o servidor em que o usuário está conectado
+		// TODO: Enviar a mensagem para o servidor encontrado após o gateway responder
+
+		this.serverHandler.sendPacket(userAddr, this.packetFactory.createClientConnectionResponse(Status.OK));
 	}
 
 	private void receiveMessageListing(Packet packet) {
 		// TODO: Implementar o fluxo de listagem de mensagens
 	}
 
-	private void receiveDisconnectionRequest(Packet packet) {
+	private void receiveClientDisconnectionRequest(Packet packet) {
 		// TODO: Implementar o fluxo de desconexão
 	}
 
@@ -220,7 +276,7 @@ public class ManagerThread extends Thread {
 		case CHAT_ADDITION -> this.receiveChatAdditionRequest(packet);
 		case MESSAGE -> this.receiveMessage(packet);
 		case MESSAGE_LISTING -> this.receiveMessageListing(packet);
-		case DISCONNECTION -> this.receiveDisconnectionRequest(packet);
+		case DISCONNECTION -> this.receiveClientDisconnectionRequest(packet);
 		}
 	}
 

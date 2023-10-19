@@ -84,4 +84,9 @@ public class PacketFactory {
 		return this.createPacket(Status.ERROR, OperationType.RESPONSE, PayloadType.ROUTING, payload);
 	}
 
+	public Packet createAuthenticationErrorResponse(PayloadType payloadType) {
+		JSONObject payload = new JSONObject();
+		payload.put("message", "Falha na autenticação, token incorreto");
+		return this.createPacket(Status.ERROR, OperationType.RESPONSE, payloadType, payload);
+	}
 }
