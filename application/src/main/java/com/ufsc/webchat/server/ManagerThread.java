@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 
+import com.ufsc.webchat.database.service.Answer;
 import com.ufsc.webchat.database.service.ChatService;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -227,22 +228,21 @@ public class ManagerThread extends Thread {
 		// TODO: Implementar o fluxo de listagem de usuários
 	}
 
-	private void receiveClientGroupChatCreationRequest(Packet packet) { // doing now
+	private void receiveClientGroupChatCreationRequest(Packet packet) {
 		if(!this.authenticateClient(packet, PayloadType.GROUP_CHAT_CREATION)) {
 			return;
 		}
 
 		JSONObject payload = packet.getPayload();
 
-		String userName = payload.getString("userName");
+		String userName = payload.getString("userName");  // precisa alguma verificação?
+		String groupName = payload.getString("groupName");
 		List<String> membersName= payload.getJSONArray("membersName").toList().stream().map(Object::toString).toList();
+		membersName.add(userName);
 
-		for (String member : membersName) {
+		Answer answer = this.chatService.createNewGroup(membersName, groupName);
 
-		}
-		// TODO: Implementar o fluxo de criação de conversas
-
-		this.serverHandler.sendPacket(packet.getHost(), this.packetFactory.createGroupChatCreationResponse(Status.OK));
+		this.serverHandler.sendPacket(packet.getHost(), this.packetFactory.createGroupChatCreationResponse(answer.status(), answer.message()));
 	}
 
 	private void receiveClientChatListingRequest(Packet packet) {
