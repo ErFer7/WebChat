@@ -32,4 +32,43 @@ public class Message {
 	@Temporal(TemporalType.TIMESTAMP)
 	private Instant sentAt;
 
+	public Long getId() {
+		return id;
+	}
+
+	public void setId(Long id) {
+		this.id = id;
+	}
+
+	public String getText() {
+		return text;
+	}
+
+	public void setText(String text) {
+		this.text = text;
+	}
+
+	public Long getSenderId() {
+		return senderId;
+	}
+
+	public void setSenderId(Long senderId) {
+		this.senderId = senderId;
+	}
+
+	public Long getChatId() {
+		return chatId;
+	}
+
+	public void setChatId(Long chatId) {
+		this.chatId = chatId;
+	}
+
+	public Instant getSentAt() {
+		return sentAt;
+	}
+
+	public void setSentAt(Instant sentAt) {
+		this.sentAt = sentAt;
+	}
 }

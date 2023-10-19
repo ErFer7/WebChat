@@ -21,4 +21,28 @@ public class ChatMember {
 	@Column(name = "chat_id")
 	private Long chatId;
 
+	public Long getId() {
+		return this.id;
+	}
+
+	public Long getUserId() {
+		return this.userId;
+	}
+
+	public Long getChatIdId() {
+		return this.chatId;
+	}
+
+	public void setId(Long id) {
+		this.id = id;
+	}
+
+	public void setUserId(Long userId) {
+		this.userId = userId;
+	}
+
+	public void setChatId(Long chatId) {
+		this.chatId = chatId;
+	}
+
 }
