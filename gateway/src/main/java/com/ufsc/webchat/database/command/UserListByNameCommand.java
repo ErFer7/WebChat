@@ -10,12 +10,12 @@ import com.ufsc.webchat.database.model.User;
 
 public class UserListByNameCommand {
 
-	public List<User> execute(String identifier) {
+	public List<User> execute(String username) {
 		try (JPAQueryFactory queryFactory = new JPAQueryFactory(EntityManagerProvider.getEntityManager())) {
 			return queryFactory.createQuery()
 					.select(user)
 					.from(user)
-					.where(user.name.eq(identifier))
+					.where(user.name.eq(username))
 					.fetch();
 		}
 	}

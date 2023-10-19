@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 
+import com.ufsc.webchat.database.service.ChatService;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +34,7 @@ public class ManagerThread extends Thread {
 	private static final Logger logger = LoggerFactory.getLogger(ManagerThread.class);
 	private final UserContextMap userContextMap;
 	private final HashMap<Long, String> externalUserIdApplicationHost = new HashMap<>();
+	private final ChatService chatService = new ChatService();
 
 	public ManagerThread(ExternalHandler serverHandler, InternalHandler clientHandler) {
 		super("manager-thread");
@@ -225,16 +227,19 @@ public class ManagerThread extends Thread {
 		// TODO: Implementar o fluxo de listagem de usuários
 	}
 
-	private void receiveClientGroupChatCreationRequest(Packet packet) {
+	private void receiveClientGroupChatCreationRequest(Packet packet) { // doing now
 		if(!this.authenticateClient(packet, PayloadType.GROUP_CHAT_CREATION)) {
 			return;
 		}
 
 		JSONObject payload = packet.getPayload();
 
-		Long userId = payload.getLong("userId");
-		List<Long> membersId = payload.getJSONArray("membersId").toList().stream().map(o -> Long.parseLong(o.toString())).toList();
+		String userName = payload.getString("userName");
+		List<String> membersName= payload.getJSONArray("membersName").toList().stream().map(Object::toString).toList();
 
+		for (String member : membersName) {
+
+		}
 		// TODO: Implementar o fluxo de criação de conversas
 
 		this.serverHandler.sendPacket(packet.getHost(), this.packetFactory.createGroupChatCreationResponse(Status.OK));
