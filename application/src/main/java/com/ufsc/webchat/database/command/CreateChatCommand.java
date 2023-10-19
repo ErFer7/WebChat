@@ -8,9 +8,9 @@ import org.slf4j.LoggerFactory;
 import java.time.Instant;
 
 public class CreateChatCommand {
-    private static final Logger logger = LoggerFactory.getLogger(CreateGroupCommand.class);
+    private static final Logger logger = LoggerFactory.getLogger(CreateChatCommand.class);
 
-    public boolean execute(String chatName, boolean isGroupChat) {
+    public Long execute(String chatName, boolean isGroupChat) {
         var em = EntityManagerProvider.getEntityManager();
         var transaction = em.getTransaction();
         transaction.begin();
@@ -24,12 +24,12 @@ public class CreateChatCommand {
         try {
             transaction.commit();
             em.close();
-            return true;
+            return chat.getId();
         } catch (Exception e) {
             logger.error("Exceção no commit no banco de dados: {}", e.getMessage());
             transaction.rollback();
             em.close();
-            return false;
+            return null;  // isso funciona?
         }
     }
 }
