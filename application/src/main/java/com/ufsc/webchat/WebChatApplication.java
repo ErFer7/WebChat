@@ -5,9 +5,9 @@ import static java.lang.Integer.parseInt;
 import com.ufsc.webchat.config.PropertyLoader;
 import com.ufsc.webchat.database.EntityManagerProvider;
 import com.ufsc.webchat.server.Server;
-import com.ufsc.webchat.server.WebChatClientHandler;
-import com.ufsc.webchat.server.WebChatManagerThread;
-import com.ufsc.webchat.server.WebChatServerHandler;
+import com.ufsc.webchat.server.InternalHandler;
+import com.ufsc.webchat.server.ManagerThread;
+import com.ufsc.webchat.server.ExternalHandler;
 
 public class WebChatApplication {
 
@@ -17,12 +17,12 @@ public class WebChatApplication {
 
 		EntityManagerProvider.init();
 
-		WebChatServerHandler serverHandler = new WebChatServerHandler();
-		WebChatClientHandler clientHandler = new WebChatClientHandler();
-		WebChatManagerThread managerThread = new WebChatManagerThread(serverHandler, clientHandler);
+		ExternalHandler serverHandler = new ExternalHandler();
+		InternalHandler clientHandler = new InternalHandler();
+		ManagerThread managerThread = new ManagerThread(serverHandler, clientHandler);
 
-		serverHandler.setManager(managerThread);
-		clientHandler.setManager(managerThread);
+		serverHandler.setManagerThread(managerThread);
+		clientHandler.setManagerThread(managerThread);
 
 		Server webServer = new Server(serverHandler, clientHandler, managerThread);
 

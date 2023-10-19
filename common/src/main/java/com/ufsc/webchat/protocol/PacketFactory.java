@@ -42,7 +42,7 @@ public class PacketFactory {
 		return this.createPacket(null, OperationType.REQUEST, PayloadType.CONNECTION, payload);
 	}
 
-	public Packet createGatewayConnectionResponse(Status status, String token) {
+	public Packet createApplicationConnectionResponse(Status status, String token) {
 		JSONObject payload = new JSONObject();
 
 		payload.put("token", token);
@@ -68,10 +68,14 @@ public class PacketFactory {
 		return this.createPacket(status, OperationType.RESPONSE, PayloadType.ROUTING, payload);
 	}
 
+	public Packet createClientConnectionResponse(Status status) {
+		return this.createPacket(status, OperationType.RESPONSE, PayloadType.CONNECTION, null);
+	}
+
 	public Packet createClientRegisterUserResponse(Status status, String message) {
 		JSONObject payload = new JSONObject();
 		payload.put("message", message);
-		return this.createPacket(status, OperationType.RESPONSE, PayloadType.REGISTER_USER, payload);
+		return this.createPacket(status, OperationType.RESPONSE, PayloadType.USER_CREATION, payload);
 	}
 
 	public Packet createClientLoginErrorResponse() {
@@ -80,4 +84,29 @@ public class PacketFactory {
 		return this.createPacket(Status.ERROR, OperationType.RESPONSE, PayloadType.ROUTING, payload);
 	}
 
+	public Packet createAuthenticationErrorResponse(PayloadType payloadType) {
+		JSONObject payload = new JSONObject();
+		payload.put("message", "Falha na autenticação, token incorreto");
+		return this.createPacket(Status.ERROR, OperationType.RESPONSE, payloadType, payload);
+	}
+
+	public Packet createApplicationClientDisconnectingRequest(String userId) {
+		JSONObject payload = new JSONObject();
+		payload.put("userId", userId);
+		return this.createPacket(null, OperationType.REQUEST, PayloadType.DISCONNECTION, payload);
+	}
+
+	public Packet createGatewayClientDisconnectionResponse(Long userId) {
+		JSONObject payload = new JSONObject();
+		payload.put("userId", userId);
+		return this.createPacket(Status.OK, OperationType.RESPONSE, PayloadType.DISCONNECTION, payload);
+	}
+
+	public Packet createApplicationClientDisconnectionResponse() {
+		return this.createPacket(Status.OK, OperationType.RESPONSE, PayloadType.DISCONNECTION, null);
+	}
+
+	public Packet createGroupChatCreationResponse(Status status) {
+		return this.createPacket(status, OperationType.RESPONSE, PayloadType.GROUP_CHAT_CREATION, null);
+	}
 }

@@ -4,7 +4,7 @@ import static java.lang.Integer.parseInt;
 
 import com.ufsc.webchat.config.PropertyLoader;
 import com.ufsc.webchat.database.EntityManagerProvider;
-import com.ufsc.webchat.server.GatewayServerHandler;
+import com.ufsc.webchat.server.ServerHandler;
 import com.ufsc.webchat.server.Server;
 
 public class WebChatGateway {
@@ -15,7 +15,7 @@ public class WebChatGateway {
 
 		EntityManagerProvider.init();
 
-		GatewayServerHandler serverHandler = new GatewayServerHandler();
+		ServerHandler serverHandler = new ServerHandler();
 		Server webServer = new Server(serverHandler);
 
 		webServer.start(parseInt(System.getProperty("gatewayPort")));

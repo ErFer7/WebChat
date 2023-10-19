@@ -49,13 +49,13 @@ public class OptionalKeyPairMap<K, T, V> {
 	}
 
 	private void remove(Object key, HashMap<Object, Integer> firstMap, HashMap<Object, Integer> secondMap) {
-		Integer index = firstMap.get(key);
+		Integer targetIndex = firstMap.get(key);
 
-		this.finalMap.remove(index);
+		this.finalMap.remove(targetIndex);
 		firstMap.remove(key);
 
 		for(Map.Entry<Object, Integer> entry : secondMap.entrySet()) {
-			if (entry.getValue().equals(index)) {
+			if (entry.getValue().equals(targetIndex)) {
 				secondMap.remove(entry.getKey());
 				break;
 			}

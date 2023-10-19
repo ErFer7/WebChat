@@ -14,20 +14,20 @@ import org.snf4j.websocket.WebSocketSession;
 
 public class Server {
 
-	private final ServerHandler serverHandler;
-	private final ClientHandler clientHandler;
+	private final Handler externalHandler;
+	private final Handler internalHandler;
 	private final Thread managerThread;
-	private final SocketChannel clientChannel;
+	private final SocketChannel internalChannel;
 	private static final Logger logger = LoggerFactory.getLogger(Server.class);
 
-	public Server(ServerHandler serverHandler, ClientHandler clientHandler, Thread managerThread) throws IOException {
-		this.serverHandler = serverHandler;
-		this.clientHandler = clientHandler;
+	public Server(Handler externalHandler, Handler internalHandler, Thread managerThread) throws IOException {
+		this.externalHandler = externalHandler;
+		this.internalHandler = internalHandler;
 		this.managerThread = managerThread;
-		this.clientChannel = clientHandler != null ? SocketChannel.open() : null;
+		this.internalChannel = internalHandler != null ? SocketChannel.open() : null;
 	}
 
-	public Server(ServerHandler serverHandler) throws IOException {
+	public Server(Handler serverHandler) throws IOException {
 		this(serverHandler, null, null);
 	}
 
@@ -37,23 +37,23 @@ public class Server {
 		try {
 			loop.start();
 
-			ServerSocketChannel serverChannel = ServerSocketChannel.open();
-			serverChannel.configureBlocking(false);
-			serverChannel.socket().bind(new InetSocketAddress(port));
+			ServerSocketChannel externalChannel = ServerSocketChannel.open();
+			externalChannel.configureBlocking(false);
+			externalChannel.socket().bind(new InetSocketAddress(port));
 
-			loop.register(serverChannel, new AbstractWebSocketSessionFactory() {
+			loop.register(externalChannel, new AbstractWebSocketSessionFactory() {
 				@Override
 				protected IWebSocketHandler createHandler(SocketChannel channel) {
-					return Server.this.getServerHandler();
+					return Server.this.getExternalHandler();
 				}
 			}).sync();
 
 			logger.info("The server is ready on port: {}", port);
 
-			if (this.clientChannel != null) {
-				this.clientChannel.configureBlocking(false);
-				loop.register(this.clientChannel, new WebSocketSession(Server.this.getClientHandler(), true));
-				this.clientHandler.setClientChannel(this.clientChannel);
+			if (this.internalChannel != null) {
+				this.internalChannel.configureBlocking(false);
+				loop.register(this.internalChannel, new WebSocketSession(Server.this.getInternalHandler(), true));
+				this.internalHandler.setInternalChannel(this.internalChannel);
 			}
 
 			if (this.managerThread != null) {
@@ -68,11 +68,11 @@ public class Server {
 		}
 	}
 
-	public ServerHandler getServerHandler() {
-		return this.serverHandler;
+	public Handler getExternalHandler() {
+		return this.externalHandler;
 	}
 
-	public ClientHandler getClientHandler() {
-		return this.clientHandler;
+	public Handler getInternalHandler() {
+		return this.internalHandler;
 	}
 }
