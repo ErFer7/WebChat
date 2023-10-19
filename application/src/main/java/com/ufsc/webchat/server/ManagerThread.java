@@ -237,10 +237,11 @@ public class ManagerThread extends Thread {
 
 		String userName = payload.getString("userName");  // precisa alguma verificação?
 		String groupName = payload.getString("groupName");
-		List<String> membersName= payload.getJSONArray("membersName").toList().stream().map(Object::toString).toList();
-		membersName.add(userName);
+		List<String> membersName = payload.getJSONArray("membersName").toList().stream().map(Object::toString).toList();
+		List<String> allMembersNames = new ArrayList<>(membersName);
+		allMembersNames.add(userName);
 
-		Answer answer = this.chatService.createNewGroup(membersName, groupName);
+		Answer answer = this.chatService.createNewGroup(allMembersNames, groupName);
 
 		this.serverHandler.sendPacket(packet.getHost(), this.packetFactory.createGroupChatCreationResponse(answer.status(), answer.message()));
 	}
