@@ -1,14 +1,11 @@
 package com.ufsc.webchat.server;
 
 import static java.lang.System.getProperty;
-import static java.util.Collections.min;
 import static java.util.Objects.isNull;
 
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
 
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -23,19 +20,18 @@ import com.ufsc.webchat.protocol.enums.HostType;
 import com.ufsc.webchat.protocol.enums.OperationType;
 import com.ufsc.webchat.protocol.enums.PayloadType;
 import com.ufsc.webchat.protocol.enums.Status;
+import com.ufsc.webchat.utils.ApplicationContextMap;
 
 public class ServerHandler extends Handler {
 
 	private final PacketFactory packetFactory;
 	private final String gatewayIdentifier;
 	private final String gatewayPassword;
-	private final HashMap<String, String> applicationHostTokenMap;
+	private final ApplicationContextMap applicationContextMap;
 	private final HashMap<Long, String> clientIdHostMap;
 	private final HashMap<Long, String> clientIdApplicationMap;
-	private final HashMap<String, Integer> applicationConnectionsCount;
 	private final SecureRandom secureRandom;
 	private final Base64.Encoder encoder;
-
 	private final UserService userService = new UserService();
 	private static final Logger logger = LoggerFactory.getLogger(ServerHandler.class);
 
@@ -43,10 +39,9 @@ public class ServerHandler extends Handler {
 		this.packetFactory = new PacketFactory(HostType.GATEWAY);
 		this.gatewayIdentifier = getProperty("gatewayIdentifier");
 		this.gatewayPassword = getProperty("gatewayPassword");
-		this.applicationHostTokenMap = new HashMap<>();
+		this.applicationContextMap = new ApplicationContextMap();
 		this.clientIdApplicationMap = new HashMap<>();  // maps user ids to Application Servers
 		this.clientIdHostMap = new HashMap<>();  // temporary maps user id to host IP
-		this.applicationConnectionsCount = new HashMap<>();
 		this.secureRandom = new SecureRandom();
 		this.encoder = Base64.getUrlEncoder();
 	}
@@ -72,49 +67,38 @@ public class ServerHandler extends Handler {
 	@Override
 	protected void sessionClosed(IWebSocketSession session) {
 		super.sessionClosed(session);
-		this.applicationHostTokenMap.remove(session.getRemoteAddress().toString());
+		this.applicationContextMap.remove(session.getRemoteAddress().toString());
+	}
+
+	private boolean authenticate(Packet packet, PayloadType payloadType) {
+		String host = packet.getHost();
+		String token = packet.getToken();
+
+		if (!this.applicationContextMap.getToken(host).equals(token)) {
+			this.sendPacket(host, this.packetFactory.createAuthenticationErrorResponse(payloadType));
+			return false;
+		}
+
+		return true;
+	}
+
+	private String generateToken() {
+		this.secureRandom.setSeed(System.currentTimeMillis());
+
+		byte[] randomBytes = new byte[24];
+		this.secureRandom.nextBytes(randomBytes);
+		return this.encoder.encodeToString(randomBytes);
 	}
 
 	private void processApplicationPackets(Packet packet) {
-		if (packet.getOperationType() == OperationType.REQUEST && packet.getPayloadType() == PayloadType.CONNECTION) {
-			this.receiveApplicationConnectionRequest(packet);
+		if (packet.getOperationType() == OperationType.REQUEST) {
+			if (packet.getPayloadType() == PayloadType.CONNECTION) {
+				this.receiveApplicationConnectionRequest(packet);
+			} else if (packet.getPayloadType() == PayloadType.DISCONNECTION) {
+				this.receiveApplicationClientDisconnectionRequest(packet);
+			}
 		} else if (packet.getOperationType() == OperationType.RESPONSE && packet.getPayloadType() == PayloadType.ROUTING) {
-			this.receiveApplicationRoutingResponse(packet);
-		}
-	}
-
-	private void receiveApplicationConnectionRequest(Packet packet) {
-		String host = packet.getHost();
-		JSONObject payload = packet.getPayload();
-
-		String identifier = payload.getString("identifier");
-		String password = payload.getString("password");
-
-		if (identifier.equals(this.gatewayIdentifier) && password.equals(this.gatewayPassword)) {
-			String token = this.generateToken();
-			this.applicationHostTokenMap.put(host, token);
-			this.applicationConnectionsCount.put(host, 0);
-			this.sendPacket(host, this.packetFactory.createGatewayConnectionResponse(Status.OK, token));
-		} else {
-			this.sendPacket(host, this.packetFactory.createGatewayConnectionResponse(Status.ERROR, null));
-		}
-	}
-
-	private void receiveApplicationRoutingResponse(Packet packet) {
-		String appAddr = packet.getHost();
-		JSONObject payload = packet.getPayload();
-		Long userId = payload.getLong("userId");
-		String userHost = this.clientIdHostMap.remove(userId);
-
-		if (packet.getStatus() == Status.OK) {
-			Integer count = this.applicationConnectionsCount.get(appAddr) + 1;
-			this.applicationConnectionsCount.put(appAddr, count);
-			this.clientIdApplicationMap.put(userId, appAddr);
-			this.sendPacket(userHost, this.packetFactory.createClientRoutingResponse(Status.OK, userId, payload.getString("token")));
-		} else {
-			// TODO: try with another server?
-			logger.warn("Application routing failed");
-			this.sendPacket(userHost, this.packetFactory.createClientRoutingResponse(Status.ERROR, userId, null));
+			this.receiveApplicationClientRoutingResponse(packet);
 		}
 	}
 
@@ -128,6 +112,60 @@ public class ServerHandler extends Handler {
 		}
 	}
 
+	private void receiveApplicationConnectionRequest(Packet packet) {
+		String host = packet.getHost();
+		JSONObject payload = packet.getPayload();
+
+		String identifier = payload.getString("identifier");
+		String password = payload.getString("password");
+
+		if (identifier.equals(this.gatewayIdentifier) && password.equals(this.gatewayPassword)) {
+			String token = this.generateToken();
+			this.applicationContextMap.add(host, token);
+			this.sendPacket(host, this.packetFactory.createApplicationConnectionResponse(Status.OK, token));
+		} else {
+			this.sendPacket(host, this.packetFactory.createApplicationConnectionResponse(Status.ERROR, null));
+		}
+	}
+
+	private void receiveApplicationClientRoutingResponse(Packet packet) {
+		JSONObject payload = packet.getPayload();
+		Long userId = payload.getLong("userId");
+		String appAddr = packet.getHost();
+		String userHost = this.clientIdHostMap.remove(userId);
+
+		// Verificação de autenticação do servidor de aplicação
+		if (!this.authenticate(packet, PayloadType.ROUTING)) {
+			// Avisa o cliente que o servidor de aplicação não está autenticado e a operação foi cancelada
+			this.sendPacket(userHost, this.packetFactory.createClientRoutingResponse(Status.ERROR, userId, null));
+			return;
+		}
+
+		if (packet.getStatus() == Status.OK) {
+			this.applicationContextMap.incrementUserCount(appAddr);
+			this.clientIdApplicationMap.put(userId, appAddr);
+			this.sendPacket(userHost, this.packetFactory.createClientRoutingResponse(Status.OK, userId, payload.getString("token")));
+		} else {
+			// TODO: try with another server?
+			logger.warn("Application routing failed");
+			this.sendPacket(userHost, this.packetFactory.createClientRoutingResponse(Status.ERROR, userId, null));
+		}
+	}
+
+	private void receiveApplicationClientDisconnectionRequest(Packet packet) {
+		if (!this.authenticate(packet, PayloadType.ROUTING)) {
+			return;
+		}
+
+		String appAddr = packet.getHost();
+		Long userId = packet.getPayload().getLong("userId");
+
+		this.clientIdApplicationMap.remove(userId);
+		this.applicationContextMap.decrementUserCount(appAddr);
+
+		this.sendPacket(appAddr, this.packetFactory.createGatewayClientDisconnectionResponse(userId));
+	}
+
 	private void receiveClientRoutingRequest(Packet packet) {
 		String clientAddr = packet.getHost();
 
@@ -136,7 +174,7 @@ public class ServerHandler extends Handler {
 			this.sendPacket(clientAddr, this.packetFactory.createClientLoginErrorResponse());
 		} else {
 			this.clientIdHostMap.put(userId, clientAddr);
-			String server = this.chooseServer();
+			String server = this.applicationContextMap.chooseLeastLoadedApplication();
 			this.sendPacket(server, this.packetFactory.createClientRoutingRequest(userId, this.generateToken()));
 		}
 	}
@@ -146,29 +184,5 @@ public class ServerHandler extends Handler {
 
 		Answer answer = this.userService.register(packet.getPayload());
 		this.sendPacket(clientAddr, this.packetFactory.createClientRegisterUserResponse(answer.status(), answer.message()));
-	}
-
-	private boolean authenticate(String host, String token) {
-		return this.applicationHostTokenMap.get(host).equals(token);
-	}
-
-	private String generateToken() {
-		this.secureRandom.setSeed(System.currentTimeMillis());
-
-		byte[] randomBytes = new byte[24];
-		this.secureRandom.nextBytes(randomBytes);
-		return this.encoder.encodeToString(randomBytes);
-	}
-
-	private String chooseServer() {
-		Integer minimum = min(this.applicationConnectionsCount.values());
-
-		for (Map.Entry<String, Integer> entry : this.applicationConnectionsCount.entrySet()) {
-			if (Objects.equals(entry.getValue(), minimum)) {
-				return entry.getKey();
-			}
-		}
-
-		return null;
 	}
 }
