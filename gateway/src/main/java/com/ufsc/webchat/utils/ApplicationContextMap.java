@@ -3,53 +3,58 @@ package com.ufsc.webchat.utils;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.javatuples.Pair;
+import org.javatuples.Triplet;
 
 public class ApplicationContextMap {
 
-	private final HashMap<String, Pair<String, Integer>> applicationHostTokenUserCountMap;
+	// ID, Token, External Host, User Count
+	private final HashMap<String, Triplet<String, String, Integer>> applications;
 
 	public ApplicationContextMap() {
-		this.applicationHostTokenUserCountMap = new HashMap<>();
+		this.applications = new HashMap<>();
 	}
 
-	public void add(String host, String token) {
-		this.applicationHostTokenUserCountMap.put(host, new Pair<>(token, 0));
+	public void add(String id, String token, String externalHost) {
+		this.applications.put(id, new Triplet<>(token, externalHost, 0));
 	}
 
-	public void remove(String host) {
-		this.applicationHostTokenUserCountMap.remove(host);
+	public void remove(String id) {
+		this.applications.remove(id);
 	}
 
 	public void incrementUserCount(String host) {
-		Pair<String, Integer> pair = this.applicationHostTokenUserCountMap.get(host);
-		this.applicationHostTokenUserCountMap.put(host, new Pair<>(pair.getValue0(), pair.getValue1() + 1));
+		Triplet<String, String, Integer> triplet = this.applications.get(host);
+		this.applications.put(host, triplet.setAt2(triplet.getValue2() + 1));
 	}
 
 	public void decrementUserCount(String host) {
-		Pair<String, Integer> pair = this.applicationHostTokenUserCountMap.get(host);
-		this.applicationHostTokenUserCountMap.put(host, new Pair<>(pair.getValue0(), pair.getValue1() - 1));
+		Triplet<String, String, Integer> triplet = this.applications.get(host);
+		this.applications.put(host, triplet.setAt2(triplet.getValue2() - 1));
 	}
 
 	public String getToken(String host) {
-		return this.applicationHostTokenUserCountMap.get(host).getValue0();
+		return this.applications.get(host).getValue0();
+	}
+
+	public String getExternalHost(String id) {
+		return this.applications.get(id).getValue1();
 	}
 
 	public Integer getUserCount(String host) {
-		return this.applicationHostTokenUserCountMap.get(host).getValue1();
+		return this.applications.get(host).getValue2();
 	}
 
 	public String chooseLeastLoadedApplication() {
-		String host = null;
+		String id = null;
 		int smallestUserCount = Integer.MAX_VALUE;
 
-		for (Map.Entry<String, Pair<String, Integer>> entry : this.applicationHostTokenUserCountMap.entrySet()) {
-			if (entry.getValue().getValue1() < smallestUserCount) {
-				host = entry.getKey();
-				smallestUserCount = entry.getValue().getValue1();
+		for (Map.Entry<String, Triplet<String, String, Integer>> entry : this.applications.entrySet()) {
+			if (entry.getValue().getValue2() < smallestUserCount) {
+				id = entry.getKey();
+				smallestUserCount = entry.getValue().getValue2();
 			}
 		}
 
-		return host;
+		return id;
 	}
 }

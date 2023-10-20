@@ -9,20 +9,17 @@ import com.ufsc.webchat.protocol.enums.Status;
 
 public class PacketFactory {
 
-	private String host;
+	private String id;
 	private final HostType hostType;
 	private String token;
 
-	public PacketFactory(HostType hostType) {
+	public PacketFactory(String id, HostType hostType) {
+		this.id = id;
 		this.hostType = hostType;
 	}
 
-	public String getHost() {
-		return this.host;
-	}
-
-	public void setHost(String host) {
-		this.host = host;
+	public String getId() {
+		return this.id;
 	}
 
 	public void setToken(String token) {
@@ -30,14 +27,24 @@ public class PacketFactory {
 	}
 
 	private Packet createPacket(Status status, OperationType operationType, PayloadType payloadType, JSONObject payload) {
-		return new Packet(this.host, this.hostType, this.token, status, operationType, payloadType, payload);
+		return new Packet(this.id, this.hostType, this.token, status, operationType, payloadType, payload);
 	}
 
-	public Packet createGatewayConnectionRequest(String identifier, String password) {
+	public Packet createHandshakeInfo(String host) {
+		JSONObject payload = new JSONObject();
+
+		payload.put("host", host);
+
+		return this.createPacket(Status.OK, OperationType.INFO, PayloadType.HOST, payload);
+	}
+
+	public Packet createGatewayConnectionRequest(String identifier, String password, String host, int externalPort) {
 		JSONObject payload = new JSONObject();
 
 		payload.put("identifier", identifier);
 		payload.put("password", password);
+		payload.put("host", host);
+		payload.put("externalPort", externalPort);
 
 		return this.createPacket(null, OperationType.REQUEST, PayloadType.CONNECTION, payload);
 	}
@@ -59,11 +66,22 @@ public class PacketFactory {
 		return this.createPacket(null, OperationType.REQUEST, PayloadType.ROUTING, payload);
 	}
 
-	public Packet createClientRoutingResponse(Status status, Long userId, String token) {
+	public Packet createApplicationClientRoutingResponse(Status status, Long userId, String token) {
 		JSONObject payload = new JSONObject();
 
 		payload.put("userId", userId);
 		payload.put("token", token);
+
+		return this.createPacket(status, OperationType.RESPONSE, PayloadType.ROUTING, payload);
+	}
+
+	public Packet createGatewayClientRoutingResponse(Status status, Long userId, String token, String applicationId, String applicationHost) {
+		JSONObject payload = new JSONObject();
+
+		payload.put("userId", userId);
+		payload.put("token", token);
+		payload.put("applicationId", applicationId);
+		payload.put("applicationHost", applicationHost);
 
 		return this.createPacket(status, OperationType.RESPONSE, PayloadType.ROUTING, payload);
 	}

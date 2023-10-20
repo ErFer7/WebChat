@@ -1,13 +1,11 @@
 package com.ufsc.webchat;
 
-import static java.lang.Integer.parseInt;
-
 import com.ufsc.webchat.config.PropertyLoader;
 import com.ufsc.webchat.database.EntityManagerProvider;
-import com.ufsc.webchat.server.Server;
+import com.ufsc.webchat.server.ExternalHandler;
 import com.ufsc.webchat.server.InternalHandler;
 import com.ufsc.webchat.server.ManagerThread;
-import com.ufsc.webchat.server.ExternalHandler;
+import com.ufsc.webchat.server.Server;
 
 public class WebChatApplication {
 
@@ -26,6 +24,6 @@ public class WebChatApplication {
 
 		Server webServer = new Server(serverHandler, clientHandler, managerThread);
 
-		webServer.start(parseInt(System.getProperty("applicationPort")));
+		webServer.start(0);
 	}
 }

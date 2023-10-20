@@ -48,7 +48,8 @@ public class Server {
 				}
 			}).sync();
 
-			logger.info("The server is ready on port: {}", port);
+			this.externalHandler.setInternalChannel(externalChannel);
+			logger.info("The external handler is ready on port: {}", externalChannel.socket().getLocalPort());
 
 			if (this.internalChannel != null) {
 				this.internalChannel.configureBlocking(false);
