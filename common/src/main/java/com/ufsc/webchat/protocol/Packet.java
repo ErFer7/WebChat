@@ -12,7 +12,7 @@ import com.ufsc.webchat.protocol.utils.FieldParser;
 
 public class Packet {
 
-	private String host;
+	private String id;
 	private HostType hostType;
 	private String token;
 	private Status status;
@@ -23,7 +23,7 @@ public class Packet {
 	private static final Logger logger = LoggerFactory.getLogger(Packet.class);
 
 	public Packet(String host, HostType type, String token, Status status, OperationType operationType, PayloadType payloadType, JSONObject payload) {
-		this.host = host;
+		this.id = host;
 		this.hostType = type;
 		this.token = token;
 		this.status = status;
@@ -36,7 +36,7 @@ public class Packet {
 		JSONObject jsonPacket = new JSONObject(jsonString);
 
 		try {
-			this.host = jsonPacket.getString("host");
+			this.id = jsonPacket.getString("id");
 			this.hostType = HostType.valueOf(jsonPacket.getString("hostType"));
 			this.token = FieldParser.nullableFieldToString(jsonPacket, "token");
 
@@ -54,7 +54,7 @@ public class Packet {
 	@Override public String toString() {
 		JSONObject jsonPacket = new JSONObject();
 
-		jsonPacket.put("host", this.host);
+		jsonPacket.put("id", this.id);
 		jsonPacket.put("hostType", this.hostType);
 		jsonPacket.put("token", this.token != null ? this.token : JSONObject.NULL);
 		jsonPacket.put("status", this.status != null ? this.status : JSONObject.NULL);
@@ -65,8 +65,8 @@ public class Packet {
 		return jsonPacket.toString();
 	}
 
-	public String getHost() {
-		return this.host;
+	public String getId() {
+		return this.id;
 	}
 
 	public HostType getHostType() {

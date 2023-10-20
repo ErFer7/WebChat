@@ -1,6 +1,6 @@
 package com.ufsc.webchat.server;
 
-import java.nio.channels.SocketChannel;
+import java.nio.channels.spi.AbstractSelectableChannel;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,17 +11,17 @@ import org.snf4j.websocket.IWebSocketSession;
 import org.snf4j.websocket.frame.TextFrame;
 
 import com.ufsc.webchat.protocol.Packet;
-import com.ufsc.webchat.utils.OptionalKeyPairMap;
+import com.ufsc.webchat.protocol.utils.SessionContextMap;
 
 public abstract class Handler extends AbstractWebSocketHandler {
 
-	private SocketChannel internalChannel;
+	protected AbstractSelectableChannel internalChannel;
 	protected Thread managerThread;
-	protected final OptionalKeyPairMap<String, String, IStreamSession> sessions;
+	protected final SessionContextMap sessions;
 	private static final Logger logger = LoggerFactory.getLogger(Handler.class);
 
 	protected Handler() {
-		this.sessions = new OptionalKeyPairMap<>();
+		this.sessions = new SessionContextMap();
 	}
 
 	public void setManagerThread(Thread managerThread) {
@@ -40,9 +40,26 @@ public abstract class Handler extends AbstractWebSocketHandler {
 
 	public abstract void readPacket(Packet packet);
 
-	public void sendPacket(String host, Packet packet) {
+	public void sendPacketById(String id, Packet packet) {
 		try {
-			IStreamSession session = this.sessions.getBySecondKey(host);
+			IStreamSession session = this.sessions.getById(id);
+			session.writenf(new TextFrame(packet.toString()));
+		} catch (Exception e) {
+			logger.error("Error while sending packet: {}", packet);
+		}
+	}
+
+	public void sendPacketByHost(String host, Packet packet) {
+		try {
+			IStreamSession session = this.sessions.getByHost(host);
+			session.writenf(new TextFrame(packet.toString()));
+		} catch (Exception e) {
+			logger.error("Error while sending packet: {}", packet);
+		}
+	}
+
+	public void sendPacketBySession(IWebSocketSession session, Packet packet) {
+		try {
 			session.writenf(new TextFrame(packet.toString()));
 		} catch (Exception e) {
 			logger.error("Error while sending packet: {}", packet);
@@ -73,25 +90,28 @@ public abstract class Handler extends AbstractWebSocketHandler {
 	protected void sessionReady(IWebSocketSession session) {
 		logger.info("Session ready: {}", session.getLocalAddress());
 
-		session.getAttributes().put("user-id", session.getRemoteAddress());
-		this.sessions.put(session.getName(), session.getRemoteAddress().toString(), session);
+		this.sessions.addSession(session.getName(), session.getRemoteAddress().toString(), session);
 	}
 
 	protected void sessionClosed(IWebSocketSession session) {
 		logger.info("Session closed: {}", session.getLocalAddress());
 
-		this.sessions.removeByFirstKey(session.getName());
+		this.sessions.removeByName(session.getName());
 	}
 
 	protected void sessionEnding(IWebSocketSession session) {
 		logger.info("Session ending: {}", session.getLocalAddress());
 	}
 
-	public void setInternalChannel(SocketChannel internalChannel) {
+	public void setInternalChannel(AbstractSelectableChannel internalChannel) {
 		this.internalChannel = internalChannel;
 	}
 
-	public SocketChannel getInternalChannel() {
+	public AbstractSelectableChannel getInternalChannel() {
 		return internalChannel;
+	}
+
+	public void associateIdToHost(String host, String id) {
+		this.sessions.associateToId(host, id);
 	}
 }

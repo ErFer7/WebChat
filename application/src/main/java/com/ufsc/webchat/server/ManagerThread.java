@@ -1,16 +1,18 @@
 package com.ufsc.webchat.server;
 
+import static java.util.UUID.randomUUID;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.Semaphore;
 
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.snf4j.websocket.IWebSocketSession;
 
 import com.ufsc.webchat.database.service.ChatService;
 import com.ufsc.webchat.model.ServiceAnswer;
@@ -23,13 +25,13 @@ import com.ufsc.webchat.utils.UserContextMap;
 
 public class ManagerThread extends Thread {
 
-	private final ExternalHandler serverHandler;  // TODO: usar
-	private final InternalHandler clientHandler;
+	private final String id;
+	private final ExternalHandler externalHandler;
+	private final InternalHandler internalHandler;
 	private final String gatewayHost;
+	private String gatewayId;
 	private final int gatewayPort;
 	private final PacketFactory packetFactory;
-	private boolean registered;
-	private final Semaphore registerSemaphore;
 	private final String gatewayIdentifier;
 	private final String gatewayPassword;
 	private static final Logger logger = LoggerFactory.getLogger(ManagerThread.class);
@@ -40,13 +42,12 @@ public class ManagerThread extends Thread {
 	public ManagerThread(ExternalHandler serverHandler, InternalHandler clientHandler) {
 		super("manager-thread");
 
-		this.serverHandler = serverHandler;
-		this.clientHandler = clientHandler;
-		this.gatewayHost = this.clientHandler.getGatewayHost();
-		this.gatewayPort = this.clientHandler.getGatewayPort();
-		this.packetFactory = new PacketFactory(HostType.APPLICATION);
-		this.registered = false;
-		this.registerSemaphore = new Semaphore(0);
+		this.id = randomUUID().toString();
+		this.externalHandler = serverHandler;
+		this.internalHandler = clientHandler;
+		this.gatewayHost = this.internalHandler.getGatewayHost();
+		this.gatewayPort = this.internalHandler.getGatewayPort();
+		this.packetFactory = new PacketFactory(this.id, HostType.APPLICATION);
 		this.gatewayIdentifier = System.getProperty("gatewayIdentifier");
 		this.gatewayPassword = System.getProperty("gatewayPassword");
 		this.userContextMap = new UserContextMap();
@@ -62,23 +63,9 @@ public class ManagerThread extends Thread {
 			return;
 		}
 
-		try {
-			this.clientHandler.getReadySemaphore().acquire();
-			this.packetFactory.setHost(this.clientHandler.getSession().getLocalAddress().toString());
-			this.clientHandler.getReadySemaphore().release();
-		} catch (Exception exception) {
-			logger.error("Exception: {}", exception.getMessage());
-			return;
-		}
-
 		while (true) {
-			if (this.clientHandler.getInternalChannel().isConnected()) {
-				// TODO: Implementar o fluxo de retry e controle do token
-				if (!this.registered) {
-					this.sendGatewayConnectionRequest();
-				}
-			} else {
-				connected = this.connectToGateway();
+			if (!this.internalHandler.getInternalChannel().isConnected()) {
+//				connected = this.connectToGateway();
 
 				if (!connected) {
 					return;
@@ -87,17 +74,13 @@ public class ManagerThread extends Thread {
 		}
 	}
 
-	private void sendPacketToGateway(Packet packet) {
-		this.clientHandler.sendPacket('/' + this.gatewayHost + ':' + this.gatewayPort, packet);
-	}
-
 	private boolean authenticateClient(Packet packet, PayloadType payloadType) {
-		String userAddr = packet.getHost();
+		String userAddr = packet.getId();
 		JSONObject payload = packet.getPayload();
 		Long userId = payload.getLong("userId");
 
-		if (!this.userContextMap.getUserToken(userId).equals(packet.getToken())) {
-			this.serverHandler.sendPacket(userAddr, this.packetFactory.createAuthenticationErrorResponse(payloadType));
+		if (!this.userContextMap.getToken(userId).equals(packet.getToken())) {
+			this.externalHandler.sendPacketById(userAddr, this.packetFactory.createAuthenticationErrorResponse(payloadType));
 			return false;
 		}
 
@@ -109,11 +92,11 @@ public class ManagerThread extends Thread {
 		int maxRetries = 5;
 		int waitTime = 1000;
 
-		while (!this.clientHandler.getInternalChannel().isConnected()) {
+		while (!this.internalHandler.getInternalChannel().isConnected()) {
 			logger.info("Trying to connect to gateway");
 
 			try {
-				this.clientHandler.getInternalChannel().connect(new InetSocketAddress(InetAddress.getByName(this.gatewayHost), this.gatewayPort));
+				this.internalHandler.getInternalChannel().connect(new InetSocketAddress(InetAddress.getByName(this.gatewayHost), this.gatewayPort));
 				logger.info("Connected to gateway");
 				return true;
 			} catch (IOException ioException) {
@@ -139,6 +122,7 @@ public class ManagerThread extends Thread {
 
 	public void processGatewayPackets(Packet packet) {
 		switch (packet.getPayloadType()) {
+		case HOST -> this.receiveGatewayHostInfo(packet);
 		case CONNECTION -> this.receiveGatewayConnectionResponse(packet);
 		case ROUTING -> this.receiveGatewayClientRoutingRequest(packet);
 		case USER_APPLICATION_SERVER -> this.receiveGatewayUserApplicationResponse(packet);
@@ -166,18 +150,35 @@ public class ManagerThread extends Thread {
 		}
 	}
 
+	public void sendClientHandshakeInfo(IWebSocketSession session) {
+		this.externalHandler.sendPacketBySession(session, this.packetFactory.createHandshakeInfo(session.getRemoteAddress().toString()));
+	}
+
+	public void receiveGatewayHostInfo(Packet packet) {
+		String host = packet.getPayload().getString("host");
+
+		this.gatewayId = packet.getId();
+
+		this.internalHandler.associateIdToHost('/' + this.gatewayHost + ':' + this.gatewayPort, this.gatewayId);
+
+		logger.info("Sending connection request to gateway");
+
+		int externalPort = this.externalHandler.getInternalChannel().socket().getLocalPort();
+
+		Packet response = this.packetFactory.createGatewayConnectionRequest(this.gatewayIdentifier, this.gatewayPassword, host, externalPort);
+
+		this.internalHandler.sendPacketById(this.gatewayId, response);
+	}
+
 	public void receiveGatewayConnectionResponse(Packet packet) {
 		if (packet.getStatus() == Status.OK) {
 			logger.info("Gateway authentication successful");
-			this.registered = true;
 			JSONObject payload = packet.getPayload();
 
 			this.packetFactory.setToken(payload.getString("token"));
 		} else {
 			logger.warn("Gateway authentication failed");
 		}
-
-		this.registerSemaphore.release();
 	}
 
 	public void receiveGatewayClientRoutingRequest(Packet packet) {
@@ -189,7 +190,7 @@ public class ManagerThread extends Thread {
 
 		this.userContextMap.add(userId, token);
 
-		this.sendPacketToGateway(this.packetFactory.createClientRoutingResponse(status, userId, token));
+		this.internalHandler.sendPacketById(this.gatewayId, this.packetFactory.createApplicationClientRoutingResponse(status, userId, token));
 	}
 
 	private void receiveClientConnectionRequest(Packet packet) {
@@ -197,10 +198,16 @@ public class ManagerThread extends Thread {
 			return;
 		}
 
-		String userAddr = packet.getHost();
-		this.userContextMap.setUserHost(packet.getPayload().getLong("userId"), userAddr);
+		String clientId = packet.getId();
 
-		this.serverHandler.sendPacket(userAddr, this.packetFactory.createClientConnectionResponse(Status.OK));
+		JSONObject payload = packet.getPayload();
+		Long userId = payload.getLong("userId");
+		String host = payload.getString("host");
+
+		this.externalHandler.associateIdToHost(host, clientId);
+		this.userContextMap.setUserClientId(userId, clientId);
+
+		this.externalHandler.sendPacketById(clientId, this.packetFactory.createClientConnectionResponse(Status.OK));
 	}
 
 	private void receiveClientDisconnectionRequest(Packet packet) {
@@ -210,13 +217,13 @@ public class ManagerThread extends Thread {
 
 		String userId = packet.getPayload().getString("userId");
 
-		this.sendPacketToGateway(this.packetFactory.createApplicationClientDisconnectingRequest(userId));
+		this.internalHandler.sendPacketById(this.gatewayId, this.packetFactory.createApplicationClientDisconnectingRequest(userId));
 	}
 
 	private void receiveGatewayClientDisconnectionResponse(Packet packet) {
 		Long userId = packet.getPayload().getLong("userId");
 
-		this.serverHandler.sendPacket(this.userContextMap.getUserHost(userId), this.packetFactory.createApplicationClientDisconnectionResponse());
+		this.externalHandler.sendPacketById(this.userContextMap.getClientId(userId), this.packetFactory.createApplicationClientDisconnectionResponse());
 		this.userContextMap.remove(userId);
 	}
 
@@ -233,7 +240,7 @@ public class ManagerThread extends Thread {
 			return;
 		}
 		ServiceAnswer serviceAnswer = this.chatService.saveChatGroup(packet.getPayload());
-		this.serverHandler.sendPacket(packet.getHost(), this.packetFactory.createGroupChatCreationResponse(serviceAnswer.status(), serviceAnswer.message()));
+		this.externalHandler.sendPacketById(packet.getId(), this.packetFactory.createGroupChatCreationResponse(serviceAnswer.status(), serviceAnswer.message()));
 	}
 
 	private void receiveClientChatListingRequest(Packet packet) {
@@ -267,7 +274,7 @@ public class ManagerThread extends Thread {
 			return;
 		}
 
-		String userAddr = packet.getHost();
+		String userAddr = packet.getId();
 		JSONObject payload = packet.getPayload();
 		Long userId = payload.getLong("userId");
 
@@ -276,7 +283,7 @@ public class ManagerThread extends Thread {
 		List<Long> targetUsersIds = new ArrayList<>();  // TODO: Obter todos os usuários da conversa
 
 		for (Long targetUserId : targetUsersIds) {
-			String targetUserHost = this.userContextMap.getUserHost(targetUserId);
+			String targetUserHost = this.userContextMap.getClientId(targetUserId);
 
 			if (targetUserHost != null) {
 				// TODO: Enviar para o cliente
@@ -303,20 +310,6 @@ public class ManagerThread extends Thread {
 
 	private void receiveApplicationMessageRedirection(Packet packet) {
 		// TODO: Implementar o fluxo de redirecionamento de mensagens
-	}
-
-	private void sendGatewayConnectionRequest() {
-		logger.info("Sending connection request to gateway");
-
-		Packet packet = this.packetFactory.createGatewayConnectionRequest(this.gatewayIdentifier, this.gatewayPassword);
-
-		this.sendPacketToGateway(packet);
-
-		try {
-			this.registerSemaphore.acquire();
-		} catch (InterruptedException e) {
-			throw new RuntimeException(e);
-		}
 	}
 
 	private void sendApplicationConnectionRequest() {

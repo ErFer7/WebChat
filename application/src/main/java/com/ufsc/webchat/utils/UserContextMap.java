@@ -6,31 +6,32 @@ import org.javatuples.Pair;
 
 public class UserContextMap {
 
-	private final HashMap<Long, Pair<String, String>> userIdTokenHostMap;
+	// userId -> (token, clientId)
+	private final HashMap<Long, Pair<String, String>> users;
 
 	public UserContextMap() {
-		this.userIdTokenHostMap = new HashMap<>();
+		this.users = new HashMap<>();
 	}
 
 	public void add(Long userId, String token) {
-		this.userIdTokenHostMap.put(userId, new Pair<>(token, null));
+		this.users.put(userId, new Pair<>(token, null));
 	}
 
 	public void remove(Long userId) {
-		this.userIdTokenHostMap.remove(userId);
+		this.users.remove(userId);
 	}
 
-	public void setUserHost(Long userId, String host) {
-		Pair<String, String> tokenHostPair = this.userIdTokenHostMap.get(userId).setAt1(host);
-		this.userIdTokenHostMap.put(userId, tokenHostPair);
+	public void setUserClientId(Long userId, String clientId) {
+		Pair<String, String> tokenClientIdPair = this.users.get(userId).setAt1(clientId);
+		this.users.put(userId, tokenClientIdPair);
 	}
 
-	public String getUserToken(Long userId) {
-		return this.userIdTokenHostMap.get(userId).getValue0();
+	public String getToken(Long userId) {
+		return this.users.get(userId).getValue0();
 	}
 
-	public String getUserHost(Long userId) {
-		return this.userIdTokenHostMap.get(userId).getValue1();
+	public String getClientId(Long userId) {
+		return this.users.get(userId).getValue1();
 	}
 
 }

@@ -1,5 +1,9 @@
 package com.ufsc.webchat.server;
 
+import java.nio.channels.ServerSocketChannel;
+
+import org.snf4j.websocket.IWebSocketSession;
+
 import com.ufsc.webchat.protocol.Packet;
 import com.ufsc.webchat.protocol.enums.HostType;
 
@@ -12,5 +16,16 @@ public class ExternalHandler extends Handler {
 		} else if (packet.getHostType() == HostType.APPLICATION) {
 			((ManagerThread) this.managerThread).processApplicationPackets(packet);
 		}
+	}
+
+	@Override protected void sessionReady(IWebSocketSession session) {
+		super.sessionReady(session);
+
+		((ManagerThread) this.managerThread).sendClientHandshakeInfo(session);
+	}
+
+	@Override
+	public ServerSocketChannel getInternalChannel() {
+		return (ServerSocketChannel) this.internalChannel;
 	}
 }
