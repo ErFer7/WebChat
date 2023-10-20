@@ -12,8 +12,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snf4j.websocket.IWebSocketSession;
 
-import com.ufsc.webchat.database.service.Answer;
 import com.ufsc.webchat.database.service.UserService;
+import com.ufsc.webchat.model.ServiceAnswer;
 import com.ufsc.webchat.protocol.Packet;
 import com.ufsc.webchat.protocol.PacketFactory;
 import com.ufsc.webchat.protocol.enums.HostType;
@@ -182,7 +182,7 @@ public class ServerHandler extends Handler {
 	private void receiveClientRegisterRequest(Packet packet) {
 		String clientAddr = packet.getHost();
 
-		Answer answer = this.userService.register(packet.getPayload());
-		this.sendPacket(clientAddr, this.packetFactory.createClientRegisterUserResponse(answer.status(), answer.message()));
+		ServiceAnswer serviceAnswer = this.userService.register(packet.getPayload());
+		this.sendPacket(clientAddr, this.packetFactory.createClientRegisterUserResponse(serviceAnswer.status(), serviceAnswer.message()));
 	}
 }
