@@ -106,7 +106,9 @@ public class PacketFactory {
 		return this.createPacket(Status.OK, OperationType.RESPONSE, PayloadType.DISCONNECTION, null);
 	}
 
-	public Packet createGroupChatCreationResponse(Status status) {
-		return this.createPacket(status, OperationType.RESPONSE, PayloadType.GROUP_CHAT_CREATION, null);
+	public Packet createGroupChatCreationResponse(Status status, String message) {
+		JSONObject payload = new JSONObject();
+		payload.put("message", message);
+		return this.createPacket(status, OperationType.RESPONSE, PayloadType.GROUP_CHAT_CREATION, payload);
 	}
 }

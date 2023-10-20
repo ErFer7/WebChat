@@ -29,4 +29,36 @@ public class Chat {
 	@Column(name = "is_group_chat", nullable = false)
 	private boolean isGroupChat;
 
+	public Long getId() {
+		return this.id;
+	}
+
+	public String getName() {
+		return this.name;
+	}
+
+	public Instant createdAt() {
+		return this.createdAt;
+	}
+
+	public boolean getIsGroupChat() {
+		return this.isGroupChat;
+	}
+
+	public void setId(Long id) {
+		this.id = id;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public void setCreatedAt(Instant createdAt) {
+		this.createdAt = createdAt;
+	}
+
+	public void setIsGroupChat(boolean isGroupChat) {
+		this.isGroupChat = isGroupChat;
+	}
+
 }

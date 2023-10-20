@@ -6,6 +6,8 @@ import com.ufsc.webchat.database.command.UserInfoDtoByUserNameCommand;
 import com.ufsc.webchat.database.command.UserSaveCommand;
 import com.ufsc.webchat.database.model.UserDto;
 import com.ufsc.webchat.database.validator.UserRegisterValidator;
+import com.ufsc.webchat.model.ServiceAnswer;
+import com.ufsc.webchat.model.ValidationMessage;
 import com.ufsc.webchat.protocol.enums.Status;
 import com.ufsc.webchat.server.PasswordHandler;
 
@@ -15,23 +17,19 @@ public class UserService {
 	private final UserSaveCommand userSaveCommand = new UserSaveCommand();
 	private final UserInfoDtoByUserNameCommand userInfoDtoByUserNameCommand = new UserInfoDtoByUserNameCommand();
 
-	public Answer register(JSONObject payload) {
+	public ServiceAnswer register(JSONObject payload) {
 		var userDto = new UserDto();
+		// TODO: VERIFICAR SE PAYLOAD.GET NÃO GERA EXCEÇÕES
 		userDto.setIdentifier(payload.getString("identifier"));
 		userDto.setPassword(payload.getString("password"));
-		// TODO: VERIFICAR SE NÃO GERA EXCEÇÕES
-
-		boolean isValid = this.userRegisterValidator.validate(userDto);
-
-		if (isValid) {
-			if (this.userSaveCommand.execute(userDto)) {
-				return new Answer(Status.OK, "Usuário cadastrado com sucesso!");
-			} else {
-				return new Answer(Status.ERROR, "Erro ao cadastrar usuário, tente novamente.");
-			}
-		} else {
-			return new Answer(Status.ERROR, "Informações inválidas: ou estão nulas, ou usuário já existe com o identificador informado.");
+		ValidationMessage validationMessage = this.userRegisterValidator.validate(userDto);
+		if (!validationMessage.isValid()) {
+			return new ServiceAnswer(Status.ERROR, validationMessage.message());
 		}
+		if (!this.userSaveCommand.execute(userDto)) {
+			return new ServiceAnswer(Status.ERROR, "Erro ao cadastrar usuário, tente novamente.");
+		}
+		return new ServiceAnswer(Status.OK, "Usuário cadastrado com sucesso!");
 	}
 
 	public Long login(JSONObject payload) {

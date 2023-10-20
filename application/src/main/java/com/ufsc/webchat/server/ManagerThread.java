@@ -12,6 +12,8 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.ufsc.webchat.database.service.ChatService;
+import com.ufsc.webchat.model.ServiceAnswer;
 import com.ufsc.webchat.protocol.Packet;
 import com.ufsc.webchat.protocol.PacketFactory;
 import com.ufsc.webchat.protocol.enums.HostType;
@@ -33,6 +35,7 @@ public class ManagerThread extends Thread {
 	private static final Logger logger = LoggerFactory.getLogger(ManagerThread.class);
 	private final UserContextMap userContextMap;
 	private final HashMap<Long, String> externalUserIdApplicationHost = new HashMap<>();
+	private final ChatService chatService = new ChatService();
 
 	public ManagerThread(ExternalHandler serverHandler, InternalHandler clientHandler) {
 		super("manager-thread");
@@ -190,7 +193,7 @@ public class ManagerThread extends Thread {
 	}
 
 	private void receiveClientConnectionRequest(Packet packet) {
-		if(!this.authenticateClient(packet, PayloadType.CONNECTION)) {
+		if (!this.authenticateClient(packet, PayloadType.CONNECTION)) {
 			return;
 		}
 
@@ -201,7 +204,7 @@ public class ManagerThread extends Thread {
 	}
 
 	private void receiveClientDisconnectionRequest(Packet packet) {
-		if(!this.authenticateClient(packet, PayloadType.DISCONNECTION)) {
+		if (!this.authenticateClient(packet, PayloadType.DISCONNECTION)) {
 			return;
 		}
 
@@ -226,22 +229,15 @@ public class ManagerThread extends Thread {
 	}
 
 	private void receiveClientGroupChatCreationRequest(Packet packet) {
-		if(!this.authenticateClient(packet, PayloadType.GROUP_CHAT_CREATION)) {
+		if (!this.authenticateClient(packet, PayloadType.GROUP_CHAT_CREATION)) {
 			return;
 		}
-
-		JSONObject payload = packet.getPayload();
-
-		Long userId = payload.getLong("userId");
-		List<Long> membersId = payload.getJSONArray("membersId").toList().stream().map(o -> Long.parseLong(o.toString())).toList();
-
-		// TODO: Implementar o fluxo de criação de conversas
-
-		this.serverHandler.sendPacket(packet.getHost(), this.packetFactory.createGroupChatCreationResponse(Status.OK));
+		ServiceAnswer serviceAnswer = this.chatService.saveChatGroup(packet.getPayload());
+		this.serverHandler.sendPacket(packet.getHost(), this.packetFactory.createGroupChatCreationResponse(serviceAnswer.status(), serviceAnswer.message()));
 	}
 
 	private void receiveClientChatListingRequest(Packet packet) {
-		if(!this.authenticateClient(packet, PayloadType.CHAT_LISTING)) {
+		if (!this.authenticateClient(packet, PayloadType.CHAT_LISTING)) {
 			return;
 		}
 
@@ -254,7 +250,7 @@ public class ManagerThread extends Thread {
 	}
 
 	private void receiveClientGroupChatAdditionRequest(Packet packet) {
-		if(!this.authenticateClient(packet, PayloadType.GROUP_CHAT_ADDITION)) {
+		if (!this.authenticateClient(packet, PayloadType.GROUP_CHAT_ADDITION)) {
 			return;
 		}
 
@@ -267,7 +263,7 @@ public class ManagerThread extends Thread {
 	}
 
 	private void receiveClientMessage(Packet packet) {
-		if(!this.authenticateClient(packet, PayloadType.MESSAGE)) {
+		if (!this.authenticateClient(packet, PayloadType.MESSAGE)) {
 			return;
 		}
 
