@@ -5,6 +5,7 @@ import static java.util.Objects.isNull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.json.JSONObject;
 
@@ -30,18 +31,20 @@ public class ChatService {
 		List<String> usernames = payload.getJSONArray("membersUsernames").toList()
 				.stream()
 				.map(Object::toString)
+				.distinct()
 				.collect(Collectors.toCollection(ArrayList::new));
-		usernames.add(payload.getString("username"));
 
 		UserSearchResultDto userSearchResultDto = this.loadUsersIdFromUsernames(usernames);
 		ValidationMessage validationMessage = this.chatGroupValidator.validate(userSearchResultDto);
 		if (!validationMessage.isValid()) {
 			return new ServiceAnswer(Status.ERROR, validationMessage.message());
 		}
-		List<Long> foundUsersIds = userSearchResultDto.getFoundUsersIds();
+
+		List<Long> chatMembers = Stream.concat(userSearchResultDto.getFoundUsersIds().stream(), Stream.of(payload.getLong("userId")))
+				.distinct().toList();
 		Long chatId = this.chatSaveCommand.execute(groupName, true);
 
-		for (Long userId : foundUsersIds) {
+		for (Long userId : chatMembers) {
 			boolean success = this.chatMemberSaveCommand.execute(chatId, userId);
 			if (!success) {
 				return new ServiceAnswer(Status.ERROR, "Erro ao criar grupo!");

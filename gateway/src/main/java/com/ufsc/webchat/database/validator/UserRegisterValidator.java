@@ -14,7 +14,7 @@ public class UserRegisterValidator {
 		if (isEmpty(userDto.getIdentifier()) || isEmpty(userDto.getPassword())) {
 			return new ValidationMessage("Erro ao cadastrar usuário: usuário ou senha vazios.", false);
 		}
-		if (this.userListByNameCommand.execute(userDto.getIdentifier()).isEmpty()) {
+		if (!this.userListByNameCommand.execute(userDto.getIdentifier()).isEmpty()) {
 			return new ValidationMessage("Erro ao cadastrar usuário: usuário já existe.", false);
 		}
 		return new ValidationMessage(null, true);
