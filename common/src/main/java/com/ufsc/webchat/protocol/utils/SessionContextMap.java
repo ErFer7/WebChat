@@ -35,8 +35,8 @@ public class SessionContextMap {
 		this.ids.put(id, this.hosts.get(host));
 	}
 
-	public String getIdByHost(String host){
-		Integer targetIndex = this.hosts.get(host);
+	public String getIdByName(String name){
+		Integer targetIndex = this.names.get(name);
 
 		for(Map.Entry<String, Integer> entry : this.ids.entrySet()) {
 			if (entry.getValue().equals(targetIndex)) {

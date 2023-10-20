@@ -64,7 +64,7 @@ public class ServerHandler extends Handler {
 	}
 
 	@Override protected void sessionClosed(IWebSocketSession session) {
-		this.applicationContextMap.remove(sessions.getIdByHost(session.getRemoteAddress().toString()));
+		this.applicationContextMap.remove(sessions.getIdByName(session.getName()));
 
 		super.sessionClosed(session);
 	}
@@ -164,6 +164,8 @@ public class ServerHandler extends Handler {
 		if (!this.authenticate(packet, PayloadType.ROUTING)) {
 			return;
 		}
+
+		// TODO: Autenticar o servidor de aplicação
 
 		String applicationId = packet.getId();
 		Long userId = packet.getPayload().getLong("userId");
