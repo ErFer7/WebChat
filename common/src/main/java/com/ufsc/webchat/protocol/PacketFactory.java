@@ -129,4 +129,10 @@ public class PacketFactory {
 		payload.put("message", message);
 		return this.createPacket(status, OperationType.RESPONSE, PayloadType.GROUP_CHAT_CREATION, payload);
 	}
+
+	public Packet createGroupChatAdditionResponse(Status status, String message) {
+		JSONObject payload = new JSONObject();
+		payload.put("message", message);
+		return this.createPacket(status, OperationType.RESPONSE, PayloadType.GROUP_CHAT_ADDITION, payload);
+	}
 }
