@@ -6,6 +6,7 @@ import static java.lang.System.getProperty;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.channels.SocketChannel;
+import java.util.concurrent.Semaphore;
 
 import org.snf4j.core.EndingAction;
 import org.snf4j.websocket.DefaultWebSocketSessionConfig;
@@ -20,12 +21,15 @@ public class InternalHandler extends Handler {
 	private final URI uri;
 	private final String gatewayHost;
 	private final int gatewayPort;
+	private final Semaphore readyLock;
 
 	public InternalHandler() throws URISyntaxException, InterruptedException {
 		this.uri = new URI("ws://" + getProperty("gatewayHost") + ":" + parseInt(getProperty("gatewayPort")));
 
 		this.gatewayHost = getProperty("gatewayHost");
 		this.gatewayPort = parseInt(getProperty("gatewayPort"));
+		this.readyLock = new Semaphore(1);
+		this.readyLock.acquire();
 	}
 
 	@Override
@@ -48,6 +52,7 @@ public class InternalHandler extends Handler {
 	@Override
 	protected void sessionReady(IWebSocketSession session) {
 		super.sessionReady(session);
+		this.readyLock.release();
 	}
 
 	public String getGatewayHost() {
@@ -56,6 +61,10 @@ public class InternalHandler extends Handler {
 
 	public int getGatewayPort() {
 		return this.gatewayPort;
+	}
+
+	public Semaphore getReadyLock() {
+		return this.readyLock;
 	}
 
 	@Override

@@ -8,9 +8,9 @@ import com.ufsc.webchat.database.model.User;
 import com.ufsc.webchat.database.model.UserDto;
 import com.ufsc.webchat.server.PasswordHandler;
 
-public class UserSaveCommand {
+public class UserSaveQueryCommand {
 
-	private static final Logger logger = LoggerFactory.getLogger(UserSaveCommand.class);
+	private static final Logger logger = LoggerFactory.getLogger(UserSaveQueryCommand.class);
 
 	public boolean execute(UserDto userDto) {
 		var em = EntityManagerProvider.getEntityManager();

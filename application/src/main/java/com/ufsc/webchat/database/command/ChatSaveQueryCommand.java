@@ -8,8 +8,8 @@ import org.slf4j.LoggerFactory;
 import com.ufsc.webchat.database.EntityManagerProvider;
 import com.ufsc.webchat.database.model.Chat;
 
-public class ChatSaveCommand {
-	private static final Logger logger = LoggerFactory.getLogger(ChatSaveCommand.class);
+public class ChatSaveQueryCommand {
+	private static final Logger logger = LoggerFactory.getLogger(ChatSaveQueryCommand.class);
 
 	public Long execute(String name, boolean isGroupChat) {
 		var em = EntityManagerProvider.getEntityManager();

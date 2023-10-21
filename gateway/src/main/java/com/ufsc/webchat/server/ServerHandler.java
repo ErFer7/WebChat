@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.snf4j.websocket.IWebSocketSession;
 
 import com.ufsc.webchat.database.service.UserService;
-import com.ufsc.webchat.model.ServiceAnswer;
+import com.ufsc.webchat.model.ServiceResponse;
 import com.ufsc.webchat.protocol.Packet;
 import com.ufsc.webchat.protocol.PacketFactory;
 import com.ufsc.webchat.protocol.enums.HostType;
@@ -43,8 +43,8 @@ public class ServerHandler extends Handler {
 		this.gatewayIdentifier = getProperty("gatewayIdentifier");
 		this.gatewayPassword = getProperty("gatewayPassword");
 		this.applicationContextMap = new ApplicationContextMap();
-		this.userIdApplicationIdMap = new HashMap<>();  // maps user ids to Application Servers
-		this.userIdClientIdMap = new HashMap<>();  // temporary maps user id to client id
+		this.userIdApplicationIdMap = new HashMap<>();
+		this.userIdClientIdMap = new HashMap<>();
 		this.secureRandom = new SecureRandom();
 		this.encoder = Base64.getUrlEncoder();
 	}
@@ -74,7 +74,7 @@ public class ServerHandler extends Handler {
 		String token = packet.getToken();
 
 		if (!this.applicationContextMap.getToken(id).equals(token)) {
-			this.sendPacketById(id, this.packetFactory.createAuthenticationErrorResponse(payloadType));
+			this.sendPacketById(id, this.packetFactory.createErrorResponse(payloadType, "Erro na autenticação"));
 			return false;
 		}
 
@@ -91,10 +91,10 @@ public class ServerHandler extends Handler {
 
 	private void processApplicationPackets(Packet packet) {
 		if (packet.getOperationType() == OperationType.REQUEST) {
-			if (packet.getPayloadType() == PayloadType.CONNECTION) {
-				this.receiveApplicationConnectionRequest(packet);
-			} else if (packet.getPayloadType() == PayloadType.DISCONNECTION) {
-				this.receiveApplicationClientDisconnectionRequest(packet);
+			switch (packet.getPayloadType()) {
+				case CONNECTION -> this.receiveApplicationConnectionRequest(packet);
+				case DISCONNECTION -> this.receiveApplicationClientDisconnectionRequest(packet);
+				case USER_APPLICATION_SERVER -> this.receiveApplicattionUserApplicationServerRequest(packet);
 			}
 		} else if (packet.getOperationType() == OperationType.RESPONSE && packet.getPayloadType() == PayloadType.ROUTING) {
 			this.receiveApplicationClientRoutingResponse(packet);
@@ -126,7 +126,7 @@ public class ServerHandler extends Handler {
 			this.applicationContextMap.add(id, token, host.split(":")[0] + ':' + externalPort);
 			this.sendPacketById(id, this.packetFactory.createApplicationConnectionResponse(Status.OK, token));
 		} else {
-			this.sendPacketById(id, this.packetFactory.createApplicationConnectionResponse(Status.ERROR, null));
+			this.sendPacketById(id, this.packetFactory.createErrorResponse(PayloadType.CONNECTION, "Erro na autenticação"));
 		}
 	}
 
@@ -187,7 +187,7 @@ public class ServerHandler extends Handler {
 
 		Long userId = this.userService.login(packet.getPayload());
 		if (isNull(userId)) {
-			this.sendPacketById(clientId, this.packetFactory.createClientLoginErrorResponse());
+			this.sendPacketById(clientId, this.packetFactory.createErrorResponse(PayloadType.ROUTING, "Falha no login, usuário não encontrado ou senha incorreta."));
 		} else {
 			this.userIdClientIdMap.put(userId, clientId);
 			String serverId = this.applicationContextMap.chooseLeastLoadedApplication();
@@ -204,7 +204,28 @@ public class ServerHandler extends Handler {
 
 		this.associateIdToHost(host, clientId);
 
-		ServiceAnswer serviceAnswer = this.userService.register(packet.getPayload());
+		ServiceResponse serviceAnswer = this.userService.register(packet.getPayload());
 		this.sendPacketById(clientId, this.packetFactory.createClientRegisterUserResponse(serviceAnswer.status(), serviceAnswer.message()));
+	}
+
+	private void receiveApplicattionUserApplicationServerRequest(Packet packet) {
+		// TODO: Autenticar o servidor de aplicação
+
+		String applicationId = packet.getId();
+
+		JSONObject payload = packet.getPayload();
+
+		Long targetUserId = payload.getLong("targetUserId");
+		String messageId = payload.getString("messageId");
+		String targetApplicationHost = this.applicationContextMap.getExternalHost(this.userIdApplicationIdMap.get(targetUserId));
+
+		if (!isNull(targetApplicationHost)) {
+			this.sendPacketById(applicationId, this.packetFactory.createApplicationUserApplicationServerResponse(messageId, targetApplicationHost));
+		} else {
+			this.sendPacketById(applicationId, this.packetFactory.createErrorResponse(
+					PayloadType.USER_APPLICATION_SERVER,
+					"Usuário não está conectado a nenhum servidor de aplicação."
+			));
+		}
 	}
 }

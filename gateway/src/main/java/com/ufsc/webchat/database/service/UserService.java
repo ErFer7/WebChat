@@ -2,11 +2,11 @@ package com.ufsc.webchat.database.service;
 
 import org.json.JSONObject;
 
-import com.ufsc.webchat.database.command.UserInfoDtoByUserNameCommand;
-import com.ufsc.webchat.database.command.UserSaveCommand;
+import com.ufsc.webchat.database.command.UserInfoDtoByUserNameQueryCommand;
+import com.ufsc.webchat.database.command.UserSaveQueryCommand;
 import com.ufsc.webchat.database.model.UserDto;
 import com.ufsc.webchat.database.validator.UserRegisterValidator;
-import com.ufsc.webchat.model.ServiceAnswer;
+import com.ufsc.webchat.model.ServiceResponse;
 import com.ufsc.webchat.model.ValidationMessage;
 import com.ufsc.webchat.protocol.enums.Status;
 import com.ufsc.webchat.server.PasswordHandler;
@@ -14,22 +14,22 @@ import com.ufsc.webchat.server.PasswordHandler;
 public class UserService {
 
 	private final UserRegisterValidator userRegisterValidator = new UserRegisterValidator();
-	private final UserSaveCommand userSaveCommand = new UserSaveCommand();
-	private final UserInfoDtoByUserNameCommand userInfoDtoByUserNameCommand = new UserInfoDtoByUserNameCommand();
+	private final UserSaveQueryCommand userSaveCommand = new UserSaveQueryCommand();
+	private final UserInfoDtoByUserNameQueryCommand userInfoDtoByUserNameCommand = new UserInfoDtoByUserNameQueryCommand();
 
-	public ServiceAnswer register(JSONObject payload) {
+	public ServiceResponse register(JSONObject payload) {
 		var userDto = new UserDto();
 		// TODO: VERIFICAR SE PAYLOAD.GET NÃO GERA EXCEÇÕES
 		userDto.setIdentifier(payload.getString("identifier"));
 		userDto.setPassword(payload.getString("password"));
 		ValidationMessage validationMessage = this.userRegisterValidator.validate(userDto);
 		if (!validationMessage.isValid()) {
-			return new ServiceAnswer(Status.ERROR, validationMessage.message());
+			return new ServiceResponse(Status.ERROR, validationMessage.message(), null);
 		}
 		if (!this.userSaveCommand.execute(userDto)) {
-			return new ServiceAnswer(Status.ERROR, "Erro ao cadastrar usuário, tente novamente.");
+			return new ServiceResponse(Status.ERROR, "Erro ao cadastrar usuário, tente novamente.", null);
 		}
-		return new ServiceAnswer(Status.OK, "Usuário cadastrado com sucesso!");
+		return new ServiceResponse(Status.OK, "Usuário cadastrado com sucesso!", null);
 	}
 
 	public Long login(JSONObject payload) {

@@ -7,7 +7,7 @@ import com.ufsc.webchat.database.EntityManagerProvider;
 import com.ufsc.webchat.database.JPAQueryFactory;
 import com.ufsc.webchat.database.model.UserInfoDto;
 
-public class UserInfoDtoByUserNameCommand {
+public class UserInfoDtoByUserNameQueryCommand {
 
 	public UserInfoDto execute(String identifier) {
 		try (JPAQueryFactory queryFactory = new JPAQueryFactory(EntityManagerProvider.getEntityManager())) {

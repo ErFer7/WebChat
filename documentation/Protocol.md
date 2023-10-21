@@ -413,6 +413,16 @@ sequenceDiagram
 
 ---
 
+### Obtenção de uma conversa
+
+```mermaid
+sequenceDiagram
+  Client ->> Application: Get chat request
+  Application ->> Client: Get chat response
+```
+
+---
+
 ### Criação de uma conversa em grupo
 
 ```mermaid

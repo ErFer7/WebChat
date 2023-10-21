@@ -1,7 +1,7 @@
 package com.ufsc.webchat.database.validator;
 
-import com.ufsc.webchat.database.command.ChatByIdCommand;
-import com.ufsc.webchat.database.command.ChatMemberByUserIdChatIdCommand;
+import com.ufsc.webchat.database.command.ChatByIdQueryCommand;
+import com.ufsc.webchat.database.command.ChatMemberByUserIdChatIdQueryCommand;
 import com.ufsc.webchat.database.model.Chat;
 import com.ufsc.webchat.database.model.ChatMember;
 import com.ufsc.webchat.model.ValidationMessage;
@@ -10,8 +10,8 @@ import static java.util.Objects.isNull;
 
 public class ChatGroupAdditionValidator {
 
-    private final ChatByIdCommand chatByIdCommand = new ChatByIdCommand();
-    private final ChatMemberByUserIdChatIdCommand chatMemberByUserIdChatIdCommand = new ChatMemberByUserIdChatIdCommand();
+    private final ChatByIdQueryCommand chatByIdCommand = new ChatByIdQueryCommand();
+    private final ChatMemberByUserIdChatIdQueryCommand chatMemberByUserIdChatIdCommand = new ChatMemberByUserIdChatIdQueryCommand();
 
     public ValidationMessage validate(Long chatId, Long addedUserId, Long userId) {
         if (isNull(addedUserId)) {

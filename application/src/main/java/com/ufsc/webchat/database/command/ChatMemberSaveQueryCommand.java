@@ -6,8 +6,8 @@ import org.slf4j.LoggerFactory;
 import com.ufsc.webchat.database.EntityManagerProvider;
 import com.ufsc.webchat.database.model.ChatMember;
 
-public class ChatMemberSaveCommand {
-	private static final Logger logger = LoggerFactory.getLogger(ChatMemberSaveCommand.class);
+public class ChatMemberSaveQueryCommand {
+	private static final Logger logger = LoggerFactory.getLogger(ChatMemberSaveQueryCommand.class);
 
 	public boolean execute(Long chatId, Long userId) {
 		var em = EntityManagerProvider.getEntityManager();
