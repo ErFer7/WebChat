@@ -7,11 +7,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.ufsc.webchat.database.command.*;
+import com.ufsc.webchat.database.validator.ChatGroupAdditionValidator;
 import org.json.JSONObject;
 
-import com.ufsc.webchat.database.command.ChatMemberSaveCommand;
-import com.ufsc.webchat.database.command.ChatSaveCommand;
-import com.ufsc.webchat.database.command.UserIdByNameCommand;
 import com.ufsc.webchat.database.model.UserSearchResultDto;
 import com.ufsc.webchat.database.validator.ChatGroupValidator;
 import com.ufsc.webchat.model.ServiceAnswer;
@@ -23,6 +22,29 @@ public class ChatService {
 	private final ChatSaveCommand chatSaveCommand = new ChatSaveCommand();
 	private final ChatGroupValidator chatGroupValidator = new ChatGroupValidator();
 	private final ChatMemberSaveCommand chatMemberSaveCommand = new ChatMemberSaveCommand();
+	private final ChatGroupAdditionValidator chatGroupAdditionValidator = new ChatGroupAdditionValidator();
+	private final ChatByIdCommand chatByIdCommand = new ChatByIdCommand();
+	private final ChatMemberByUserIdChatIdCommand chatMemberByUserIdChatIdCommand = new ChatMemberByUserIdChatIdCommand();
+
+	public ServiceAnswer addToChatGroup(JSONObject payload) {
+		Long userId = payload.getLong("userId");
+		Long chatId = payload.getLong("chatId");
+		String addedUserName = payload.getString("addedUserName");
+
+		Long addedUserId = this.userIdByNameCommand.execute(addedUserName);
+
+		ValidationMessage validationMessage = this.chatGroupAdditionValidator.validate(chatId, addedUserId, userId);
+		if (!validationMessage.isValid()) {
+			return new ServiceAnswer(Status.ERROR, validationMessage.message());
+		}
+
+		boolean success = this.chatMemberSaveCommand.execute(chatId, addedUserId);
+		if (!success) {
+			return new ServiceAnswer(Status.ERROR, "Erro ao criar grupo!");
+		}
+
+		return new ServiceAnswer(Status.OK, "Usuário adicionado ao grupo com sucesso!");
+	}
 
 	public ServiceAnswer saveChatGroup(JSONObject payload) {
 		// TODO: Avaliar possíveis exceções se não houver os campos no payload.
