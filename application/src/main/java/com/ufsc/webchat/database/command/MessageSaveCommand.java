@@ -7,20 +7,20 @@ import org.slf4j.LoggerFactory;
 
 import com.ufsc.webchat.database.EntityManagerProvider;
 import com.ufsc.webchat.database.model.Message;
-import com.ufsc.webchat.database.model.MessageDto;
+import com.ufsc.webchat.database.model.MessageCreateDto;
 
 public class MessageSaveCommand {
 	private static final Logger logger = LoggerFactory.getLogger(MessageSaveCommand.class);
 
-	public Long execute(MessageDto messageDto) {
+	public Long execute(MessageCreateDto messageCreateDto) {
 		var em = EntityManagerProvider.getEntityManager();
 		var transaction = em.getTransaction();
 		transaction.begin();
 
 		Message message = new Message();
-		message.setChatId(messageDto.getChatId());
-		message.setText(messageDto.getMessage());
-		message.setSenderId(messageDto.getSenderId());
+		message.setChatId(messageCreateDto.getChatId());
+		message.setText(messageCreateDto.getMessage());
+		message.setSenderId(messageCreateDto.getSenderId());
 		message.setSentAt(Instant.now());
 
 		em.persist(message);

@@ -8,9 +8,11 @@ import java.util.stream.Collectors;
 
 import org.json.JSONObject;
 
+import com.ufsc.webchat.database.command.ChatDtoListByUserIdQueryCommand;
 import com.ufsc.webchat.database.command.ChatIdByUsersIdsQueryCommand;
 import com.ufsc.webchat.database.command.ChatMemberSaveCommand;
 import com.ufsc.webchat.database.command.ChatSaveCommand;
+import com.ufsc.webchat.database.model.ChatDto;
 import com.ufsc.webchat.database.model.UserSearchResultDto;
 import com.ufsc.webchat.database.validator.ChatGroupAdditionValidator;
 import com.ufsc.webchat.database.validator.ChatGroupValidator;
@@ -26,6 +28,7 @@ public class ChatService {
 	private final ChatSaveCommand chatSaveCommand = new ChatSaveCommand();
 	private final ChatMemberSaveCommand chatMemberSaveCommand = new ChatMemberSaveCommand();
 	private final ChatIdByUsersIdsQueryCommand chatIdByUsersIdsQueryCommand = new ChatIdByUsersIdsQueryCommand();
+	private final ChatDtoListByUserIdQueryCommand chatDtoListByUserIdQueryCommand = new ChatDtoListByUserIdQueryCommand();
 
 	public ServiceResponse addToChatGroup(JSONObject payload) {
 		Long userId = payload.getLong("userId");
@@ -105,6 +108,10 @@ public class ChatService {
 			return new ServiceResponse(Status.ERROR, "Erro ao criar chat!", null);
 		}
 		return new ServiceResponse(Status.CREATED, null, newChatId);
+	}
+
+	public List<ChatDto> loadChatDtoListByUserId(JSONObject payload) {
+		return this.chatDtoListByUserIdQueryCommand.execute(payload.getLong("userId"));
 	}
 
 	private UserSearchResultDto loadUsersIdFromUsernames(List<String> usernames) {

@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snf4j.websocket.IWebSocketSession;
 
+import com.ufsc.webchat.database.model.ChatDto;
 import com.ufsc.webchat.database.service.ChatService;
 import com.ufsc.webchat.database.service.MessageService;
 import com.ufsc.webchat.database.service.UserService;
@@ -247,7 +248,13 @@ public class ManagerThread extends Thread {
 	}
 
 	private void receiveClientUserListingRequest(Packet packet) {
-		// TODO: Implementar o fluxo de listagem de usuários
+		if (!this.authenticateClient(packet, PayloadType.USER_LISTING)) {
+			return;
+		}
+		ServiceResponse serviceResponse = this.userService.loadUserDtoList();
+		var responsePayload = new JSONObject(Map.of("users", serviceResponse.payload()));
+		var responsePacket = this.packetFactory.createGenericClientResponse(serviceResponse.status(), PayloadType.USER_LISTING, responsePayload, serviceResponse.message());
+		this.externalHandler.sendPacketById(packet.getId(), responsePacket);
 	}
 
 	private void receiveClientGroupChatCreationRequest(Packet packet) {
@@ -265,13 +272,10 @@ public class ManagerThread extends Thread {
 		if (!this.authenticateClient(packet, PayloadType.CHAT_LISTING)) {
 			return;
 		}
-
-		JSONObject payload = packet.getPayload();
-
-		Long userId = payload.getLong("userId");
-		Long chatId = payload.getLong("chatId");
-
-		// TODO: Implementar o fluxo de listagem de conversas
+		List<ChatDto> chatDtoList = this.chatService.loadChatDtoListByUserId(packet.getPayload());
+		var responsePayload = new JSONObject(Map.of("chats", chatDtoList));
+		var responsePacket = this.packetFactory.createGenericClientResponse(Status.OK, PayloadType.CHAT_LISTING, responsePayload, null);
+		this.externalHandler.sendPacketById(packet.getId(), responsePacket);
 	}
 
 	private void receiveClientGroupChatAdditionRequest(Packet packet) {
@@ -305,7 +309,13 @@ public class ManagerThread extends Thread {
 	}
 
 	private void receiveClientMessageListing(Packet packet) {
-		// TODO: Implementar o fluxo de listagem de mensagens
+		if (!this.authenticateClient(packet, PayloadType.MESSAGE_LISTING)) {
+			return;
+		}
+		var messagesDto = this.messageService.loadMessages(packet.getPayload());
+		var responsePayload = new JSONObject(Map.of("messages", messagesDto));
+		var packetResponse = this.packetFactory.createGenericClientResponse(Status.OK, PayloadType.MESSAGE_LISTING, responsePayload, null);
+		this.externalHandler.sendPacketById(packet.getId(), packetResponse);
 	}
 
 	private void receiveClientGetUserChatId(Packet packet) {
