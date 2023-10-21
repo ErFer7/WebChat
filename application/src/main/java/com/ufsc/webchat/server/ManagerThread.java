@@ -7,7 +7,6 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.json.JSONObject;
@@ -16,6 +15,8 @@ import org.slf4j.LoggerFactory;
 import org.snf4j.websocket.IWebSocketSession;
 
 import com.ufsc.webchat.database.service.ChatService;
+import com.ufsc.webchat.database.service.MessageService;
+import com.ufsc.webchat.database.service.UserService;
 import com.ufsc.webchat.model.ServiceResponse;
 import com.ufsc.webchat.protocol.Packet;
 import com.ufsc.webchat.protocol.PacketFactory;
@@ -38,7 +39,9 @@ public class ManagerThread extends Thread {
 	private final UserContextMap userContextMap;
 	private final HashMap<Long, String> externalUserIdApplicationIdMap;
 	private final ChatService chatService;
-	private final HashMap<String, JSONObject> tempMessageMap;
+	private final UserService userService;
+	private final MessageService messageService;
+	private final HashMap<Long, JSONObject> tempMessageMap;
 	private static final Logger logger = LoggerFactory.getLogger(ManagerThread.class);
 
 	public ManagerThread(ExternalHandler serverHandler, InternalHandler clientHandler) {
@@ -54,6 +57,8 @@ public class ManagerThread extends Thread {
 		this.gatewayPassword = System.getProperty("gatewayPassword");
 		this.userContextMap = new UserContextMap();
 		this.chatService = new ChatService();
+		this.userService = new UserService();
+		this.messageService = new MessageService();
 		this.externalUserIdApplicationIdMap = new HashMap<>();
 		this.tempMessageMap = new HashMap<>();
 	}
@@ -88,12 +93,12 @@ public class ManagerThread extends Thread {
 	}
 
 	private boolean authenticateClient(Packet packet, PayloadType payloadType) {
-		String userAddr = packet.getId();
+		String clientId = packet.getId();
 		JSONObject payload = packet.getPayload();
 		Long userId = payload.getLong("userId");
 
 		if (!this.userContextMap.getToken(userId).equals(packet.getToken())) {
-			this.externalHandler.sendPacketById(userAddr, this.packetFactory.createErrorResponse(payloadType, "Erro na autenticação"));
+			this.externalHandler.sendPacketById(clientId, this.packetFactory.createErrorResponse(payloadType, "Erro na autenticação"));
 			return false;
 		}
 
@@ -140,6 +145,7 @@ public class ManagerThread extends Thread {
 		case ROUTING -> this.receiveGatewayClientRoutingRequest(packet);
 		case USER_APPLICATION_SERVER -> this.receiveGatewayUserApplicationResponse(packet);
 		case DISCONNECTION -> this.receiveGatewayClientDisconnectionResponse(packet);
+		default -> logger.warn("Unexpected packet type: {}", packet.getPayloadType());
 		}
 	}
 
@@ -147,6 +153,7 @@ public class ManagerThread extends Thread {
 		switch (packet.getPayloadType()) {
 		case CONNECTION -> this.receiveApplicationConnectionResponse(packet);
 		case MESSAGE -> this.receiveApplicationMessageRedirection(packet);
+		default -> logger.warn("Unexpected packet type: {}", packet.getPayloadType());
 		}
 	}
 
@@ -160,6 +167,7 @@ public class ManagerThread extends Thread {
 		case MESSAGE -> this.receiveClientMessage(packet);
 		case MESSAGE_LISTING -> this.receiveClientMessageListing(packet);
 		case DISCONNECTION -> this.receiveClientDisconnectionRequest(packet);
+		default -> logger.warn("Unexpected packet type: {}", packet.getPayloadType());
 		}
 	}
 
@@ -286,44 +294,22 @@ public class ManagerThread extends Thread {
 		if (!this.authenticateClient(packet, PayloadType.MESSAGE)) {
 			return;
 		}
-
 		String clientId = packet.getId();
 		JSONObject payload = packet.getPayload();  // TODO: Validar
+		Long senderId = payload.getLong("userId");
 
-		Long senderId = payload.getLong("senderId");
-
-		ServiceResponse serviceResponse = this.chatService.loadUsersIdsFromChat(payload);
-
-		if(serviceResponse.status() == Status.ERROR) {
-			this.externalHandler.sendPacketById(clientId, this.packetFactory.createErrorResponse(PayloadType.MESSAGE, serviceResponse.message()));
+		ServiceResponse messageServiceResponse = this.messageService.saveMessage(payload);
+		if (messageServiceResponse.status() == Status.ERROR) {
+			this.externalHandler.sendPacketById(clientId, this.packetFactory.createErrorResponse(PayloadType.MESSAGE, messageServiceResponse.message()));
 			return;
 		}
-
-		List<Long> targetUsersIds = (List<Long>) serviceResponse.payload();
-
-		for (Long targetUserId : targetUsersIds) {
-			if (targetUserId.equals(senderId)) {
-				continue;
-			}
-
-			String targetUserClientId = this.userContextMap.getClientId(targetUserId);
-
-			if (targetUserClientId != null) {
-				this.externalHandler.sendPacketById(targetUserClientId, this.packetFactory.createApplicationMessageResponse(Status.OK, payload));
-			} else {
-				String applicationId = this.externalUserIdApplicationIdMap.get(targetUserId);
-
-				payload.put("targetUserId", targetUserId);
-
-				if (applicationId != null) {
-					this.internalHandler.sendPacketById(applicationId, this.packetFactory.createApplicationMessageForwardingRequest(payload));
-				} else {
-					String messageId = UUID.randomUUID().toString();
-					this.tempMessageMap.put(messageId, payload);
-					this.internalHandler.sendPacketById(this.gatewayId, this.packetFactory.createApplicationUserApplicationServerRequest(messageId, targetUserId));
-				}
-			}
+		ServiceResponse userServiceResponse = this.userService.loadUsersIdsFromChat(payload);
+		if (userServiceResponse.status() == Status.ERROR) {
+			this.externalHandler.sendPacketById(clientId, this.packetFactory.createErrorResponse(PayloadType.MESSAGE, userServiceResponse.message()));
+			return;
 		}
+		//TODO: Avaliar unchecked cast
+		this.broadCastClientMessage((List<Long>) userServiceResponse.payload(), senderId, (Long) messageServiceResponse.payload(), payload);
 	}
 
 	private void receiveClientMessageListing(Packet packet) {
@@ -340,6 +326,29 @@ public class ManagerThread extends Thread {
 		String targetUserClientId = this.userContextMap.getClientId(targetUserId);
 
 		this.externalHandler.sendPacketById(targetUserClientId, this.packetFactory.createApplicationMessageResponse(Status.OK, packet.getPayload()));
+	}
+
+	private void broadCastClientMessage(List<Long> targetUsersIds, Long senderId, Long messageId, JSONObject payload) {
+		for (Long targetUserId : targetUsersIds) {
+			if (targetUserId.equals(senderId)) {
+				continue;
+			}
+
+			String targetUserClientId = this.userContextMap.getClientId(targetUserId);
+
+			if (targetUserClientId != null) {
+				this.externalHandler.sendPacketById(targetUserClientId, this.packetFactory.createApplicationMessageResponse(Status.OK, payload));
+			} else {
+				String applicationId = this.externalUserIdApplicationIdMap.get(targetUserId);
+				payload.put("targetUserId", targetUserId);
+				if (applicationId != null) {
+					this.internalHandler.sendPacketById(applicationId, this.packetFactory.createApplicationMessageForwardingRequest(payload));
+				} else {
+					this.tempMessageMap.put(messageId, payload);
+					this.internalHandler.sendPacketById(this.gatewayId, this.packetFactory.createApplicationUserApplicationServerRequest(messageId.toString(), targetUserId));
+				}
+			}
+		}
 	}
 
 	private void sendApplicationConnectionRequest() {

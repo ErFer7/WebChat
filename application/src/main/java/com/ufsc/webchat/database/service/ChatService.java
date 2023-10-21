@@ -5,41 +5,32 @@ import static java.util.Objects.isNull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.json.JSONObject;
 
-import com.ufsc.webchat.database.command.ChatByIdQueryCommand;
-import com.ufsc.webchat.database.command.ChatMemberByUserIdChatIdQueryCommand;
 import com.ufsc.webchat.database.command.ChatMemberSaveCommand;
 import com.ufsc.webchat.database.command.ChatSaveCommand;
-import com.ufsc.webchat.database.command.UserIdByNameQueryCommand;
-import com.ufsc.webchat.database.command.UserIdsByChatIdQueryCommand;
 import com.ufsc.webchat.database.model.UserSearchResultDto;
 import com.ufsc.webchat.database.validator.ChatGroupAdditionValidator;
 import com.ufsc.webchat.database.validator.ChatGroupValidator;
-import com.ufsc.webchat.database.validator.ChatMembersListingValidator;
 import com.ufsc.webchat.model.ServiceResponse;
 import com.ufsc.webchat.model.ValidationMessage;
 import com.ufsc.webchat.protocol.enums.Status;
 
 public class ChatService {
-	private final UserIdByNameQueryCommand userIdByNameCommand = new UserIdByNameQueryCommand();
-	private final ChatSaveCommand chatSaveCommand = new ChatSaveCommand();
+
+	private final UserService userService = new UserService();
 	private final ChatGroupValidator chatGroupValidator = new ChatGroupValidator();
-	private final ChatMemberSaveCommand chatMemberSaveCommand = new ChatMemberSaveCommand();
 	private final ChatGroupAdditionValidator chatGroupAdditionValidator = new ChatGroupAdditionValidator();
-	private final ChatByIdQueryCommand chatByIdCommand = new ChatByIdQueryCommand();
-	private final ChatMemberByUserIdChatIdQueryCommand chatMemberByUserIdChatIdCommand = new ChatMemberByUserIdChatIdQueryCommand();
-	private final ChatMembersListingValidator chatMembersListingValidator = new ChatMembersListingValidator();
-	private final UserIdsByChatIdQueryCommand chatMembersByChatIdCommand = new UserIdsByChatIdQueryCommand();
+	private final ChatSaveCommand chatSaveCommand = new ChatSaveCommand();
+	private final ChatMemberSaveCommand chatMemberSaveCommand = new ChatMemberSaveCommand();
 
 	public ServiceResponse addToChatGroup(JSONObject payload) {
 		Long userId = payload.getLong("userId");
 		Long chatId = payload.getLong("chatId");
 		String addedUserName = payload.getString("addedUserName");
 
-		Long addedUserId = this.userIdByNameCommand.execute(addedUserName);
+		Long addedUserId = this.userService.loadUserIdByName(addedUserName);
 
 		ValidationMessage validationMessage = this.chatGroupAdditionValidator.validate(chatId, addedUserId, userId);
 		if (!validationMessage.isValid()) {
@@ -70,41 +61,30 @@ public class ChatService {
 			return new ServiceResponse(Status.ERROR, validationMessage.message(), null);
 		}
 
-		List<Long> chatMembers = Stream.concat(userSearchResultDto.getFoundUsersIds().stream(), Stream.of(payload.getLong("userId")))
-				.distinct().toList();
+		List<Long> chatMembers = userSearchResultDto.getFoundUsersIds();
+		Long userId = payload.getLong("userId");
+
+		if (!chatMembers.contains(userId)) {
+			chatMembers.add(userId);
+		}
+
 		Long chatId = this.chatSaveCommand.execute(groupName, true);
 
-		for (Long userId : chatMembers) {
-			boolean success = this.chatMemberSaveCommand.execute(chatId, userId);
+		for (Long memberId : chatMembers) {
+			boolean success = this.chatMemberSaveCommand.execute(chatId, memberId);
 			if (!success) {
 				return new ServiceResponse(Status.ERROR, "Erro ao criar grupo!", null);
 			}
 		}
-		// TODO: esse erro de bd acima é bem raro, mas os commands podem ser encapsulados internamente com retries.
 
 		return new ServiceResponse(Status.OK, "Grupo criado com sucesso!", chatId);
-	}
-
-	public ServiceResponse loadUsersIdsFromChat(JSONObject payload) {
-		Long userId = payload.getLong("userId");
-		Long chatId = payload.getLong("chatId");
-
-		ValidationMessage validationMessage = this.chatMembersListingValidator.validate(chatId, userId);
-
-		if (!validationMessage.isValid()) {
-			return new ServiceResponse(Status.ERROR, validationMessage.message(), null);
-		}
-
-		List<Long> chatMembersIds = this.chatMembersByChatIdCommand.execute(chatId);
-
-		return new ServiceResponse(Status.OK, "Membros carregados com sucesso!", chatMembersIds);
 	}
 
 	private UserSearchResultDto loadUsersIdFromUsernames(List<String> usernames) {
 		List<String> notFoundUsers = new ArrayList<>();
 		List<Long> foundUsersIds = new ArrayList<>();
 		usernames.forEach(member -> {
-			Long userId = this.userIdByNameCommand.execute(member);
+			Long userId = this.userService.loadUserIdByName(member);
 			if (isNull(userId)) {
 				notFoundUsers.add(member);
 			} else {
