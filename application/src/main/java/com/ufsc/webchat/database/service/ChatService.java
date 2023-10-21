@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 import org.json.JSONObject;
 
+import com.ufsc.webchat.database.command.ChatIdByUsersIdsQueryCommand;
 import com.ufsc.webchat.database.command.ChatMemberSaveCommand;
 import com.ufsc.webchat.database.command.ChatSaveCommand;
 import com.ufsc.webchat.database.model.UserSearchResultDto;
@@ -24,6 +25,7 @@ public class ChatService {
 	private final ChatGroupAdditionValidator chatGroupAdditionValidator = new ChatGroupAdditionValidator();
 	private final ChatSaveCommand chatSaveCommand = new ChatSaveCommand();
 	private final ChatMemberSaveCommand chatMemberSaveCommand = new ChatMemberSaveCommand();
+	private final ChatIdByUsersIdsQueryCommand chatIdByUsersIdsQueryCommand = new ChatIdByUsersIdsQueryCommand();
 
 	public ServiceResponse addToChatGroup(JSONObject payload) {
 		Long userId = payload.getLong("userId");
@@ -77,7 +79,32 @@ public class ChatService {
 			}
 		}
 
-		return new ServiceResponse(Status.OK, "Grupo criado com sucesso!", chatId);
+		return new ServiceResponse(Status.CREATED, null, chatId);
+	}
+
+	//TODO: Remover erros de banco como resposta (ou encapsular tudo isso em transações, pra não ficar verificando e dar rollback certo)
+	public ServiceResponse loadChatIdByUsers(JSONObject payload) {
+		Long userId = payload.getLong("userId");
+		String targetUsername = payload.getString("targetUsername");
+		Long targetUserId = this.userService.loadUserIdByName(targetUsername);
+		if (isNull(targetUserId)) {
+			return new ServiceResponse(Status.ERROR, "Usuário não encontrado!", null);
+		}
+
+		Long chatId = this.chatIdByUsersIdsQueryCommand.execute(userId, targetUserId);
+		if (!isNull(chatId)) {
+			return new ServiceResponse(Status.OK, "Chat encontrado!", chatId);
+		}
+		Long newChatId = this.chatSaveCommand.execute(null, false);
+		if (isNull(newChatId)) {
+			return new ServiceResponse(Status.ERROR, "Erro ao criar chat!", null);
+		}
+		boolean createFirstRL = this.chatMemberSaveCommand.execute(newChatId, userId);
+		boolean createSecondRL = this.chatMemberSaveCommand.execute(newChatId, targetUserId);
+		if (!createFirstRL || !createSecondRL) {
+			return new ServiceResponse(Status.ERROR, "Erro ao criar chat!", null);
+		}
+		return new ServiceResponse(Status.CREATED, null, newChatId);
 	}
 
 	private UserSearchResultDto loadUsersIdFromUsernames(List<String> usernames) {

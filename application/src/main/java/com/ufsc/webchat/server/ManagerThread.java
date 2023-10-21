@@ -7,6 +7,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.json.JSONObject;
@@ -160,13 +161,14 @@ public class ManagerThread extends Thread {
 	public void processClientPackets(Packet packet) {
 		switch (packet.getPayloadType()) {
 		case CONNECTION -> this.receiveClientConnectionRequest(packet);
-		case USER_LISTING -> this.receiveUserListingRequest(packet);
+		case USER_LISTING -> this.receiveClientUserListingRequest(packet);
 		case GROUP_CHAT_CREATION -> this.receiveClientGroupChatCreationRequest(packet);
 		case CHAT_LISTING -> this.receiveClientChatListingRequest(packet);
 		case GROUP_CHAT_ADDITION -> this.receiveClientGroupChatAdditionRequest(packet);
 		case MESSAGE -> this.receiveClientMessage(packet);
 		case MESSAGE_LISTING -> this.receiveClientMessageListing(packet);
 		case DISCONNECTION -> this.receiveClientDisconnectionRequest(packet);
+		case GET_USER_CHAT_ID -> this.receiveClientGetUserChatId(packet);
 		default -> logger.warn("Unexpected packet type: {}", packet.getPayloadType());
 		}
 	}
@@ -177,17 +179,13 @@ public class ManagerThread extends Thread {
 
 	public void receiveGatewayHostInfo(Packet packet) {
 		String host = packet.getPayload().getString("host");
-
 		this.gatewayId = packet.getId();
-
 		this.internalHandler.associateIdToHost('/' + this.gatewayHost + ':' + this.gatewayPort, this.gatewayId);
 
 		logger.info("Sending connection request to gateway");
 
 		int externalPort = this.externalHandler.getInternalChannel().socket().getLocalPort();
-
 		Packet response = this.packetFactory.createGatewayConnectionRequest(this.gatewayIdentifier, this.gatewayPassword, host, externalPort);
-
 		this.internalHandler.sendPacketById(this.gatewayId, response);
 	}
 
@@ -204,21 +202,18 @@ public class ManagerThread extends Thread {
 
 	public void receiveGatewayClientRoutingRequest(Packet packet) {
 		JSONObject payload = packet.getPayload();
-
 		Long userId = payload.getLong("userId");
 		String token = payload.getString("token");
-		Status status = Status.OK;
 
 		this.userContextMap.add(userId, token);
 
-		this.internalHandler.sendPacketById(this.gatewayId, this.packetFactory.createApplicationClientRoutingResponse(status, userId, token));
+		this.internalHandler.sendPacketById(this.gatewayId, this.packetFactory.createApplicationClientRoutingResponse(Status.OK, userId, token));
 	}
 
 	private void receiveClientConnectionRequest(Packet packet) {
 		if (!this.authenticateClient(packet, PayloadType.CONNECTION)) {
 			return;
 		}
-
 		String clientId = packet.getId();
 
 		JSONObject payload = packet.getPayload();
@@ -235,7 +230,6 @@ public class ManagerThread extends Thread {
 		if (!this.authenticateClient(packet, PayloadType.DISCONNECTION)) {
 			return;
 		}
-
 		String userId = packet.getPayload().getString("userId");
 
 		this.internalHandler.sendPacketById(this.gatewayId, this.packetFactory.createApplicationClientDisconnectingRequest(userId));
@@ -252,7 +246,7 @@ public class ManagerThread extends Thread {
 		// TODO: Implementar [CONTINUAR DAQUI]
 	}
 
-	private void receiveUserListingRequest(Packet packet) {
+	private void receiveClientUserListingRequest(Packet packet) {
 		// TODO: Implementar o fluxo de listagem de usuários
 	}
 
@@ -262,11 +256,9 @@ public class ManagerThread extends Thread {
 		}
 
 		ServiceResponse serviceResponse = this.chatService.saveChatGroup(packet.getPayload());
-		this.externalHandler.sendPacketById(packet.getId(), this.packetFactory.createGroupChatCreationResponse(
-				serviceResponse.status(),
-				serviceResponse.message(),
-				(Integer) serviceResponse.payload()
-		));
+		JSONObject responsePayload = new JSONObject(Map.of("chatId", serviceResponse.payload()));
+		var responsePacket = this.packetFactory.createGenericClientResponse(serviceResponse.status(), PayloadType.GROUP_CHAT_CREATION, responsePayload, serviceResponse.message());
+		this.externalHandler.sendPacketById(packet.getId(), responsePacket);
 	}
 
 	private void receiveClientChatListingRequest(Packet packet) {
@@ -314,6 +306,16 @@ public class ManagerThread extends Thread {
 
 	private void receiveClientMessageListing(Packet packet) {
 		// TODO: Implementar o fluxo de listagem de mensagens
+	}
+
+	private void receiveClientGetUserChatId(Packet packet) {
+		if (!this.authenticateClient(packet, PayloadType.MESSAGE)) {
+			return;
+		}
+		ServiceResponse serviceResponse = this.chatService.loadChatIdByUsers(packet.getPayload());
+		var responsePayload = new JSONObject(Map.of("chatId", serviceResponse.payload()));
+		var responsePacket = this.packetFactory.createGenericClientResponse(serviceResponse.status(), PayloadType.GET_USER_CHAT_ID, responsePayload, serviceResponse.message());
+		this.externalHandler.sendPacketById(packet.getId(), responsePacket);
 	}
 
 	private void receiveApplicationConnectionResponse(Packet packet) {

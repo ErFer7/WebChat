@@ -120,13 +120,6 @@ public class PacketFactory {
 		return this.createPacket(Status.OK, OperationType.RESPONSE, PayloadType.DISCONNECTION, null);
 	}
 
-	public Packet createGroupChatCreationResponse(Status status, String message, Integer chatId) {
-		JSONObject payload = new JSONObject();
-		payload.put("message", message);
-		payload.put("chatId", chatId);
-		return this.createPacket(status, OperationType.RESPONSE, PayloadType.GROUP_CHAT_CREATION, payload);
-	}
-
 	public Packet createGroupChatAdditionResponse(Status status, String message) {
 		JSONObject payload = new JSONObject();
 		payload.put("message", message);
@@ -157,5 +150,12 @@ public class PacketFactory {
 		payload.put("applicationHost", applicationHost);
 
 		return this.createPacket(Status.OK, OperationType.RESPONSE, PayloadType.USER_APPLICATION_SERVER, payload);
+	}
+
+	public Packet createGenericClientResponse(Status status, PayloadType payloadType, JSONObject payload, String message) {
+		if (status.equals(Status.ERROR)) {
+			return this.createErrorResponse(payloadType, message);
+		}
+		return this.createPacket(status, OperationType.RESPONSE, payloadType, payload);
 	}
 }

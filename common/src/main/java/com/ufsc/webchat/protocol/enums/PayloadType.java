@@ -13,4 +13,5 @@ public enum PayloadType {
 	GROUP_CHAT_ADDITION,
 	MESSAGE,
 	MESSAGE_LISTING,
+	GET_USER_CHAT_ID,
 }
