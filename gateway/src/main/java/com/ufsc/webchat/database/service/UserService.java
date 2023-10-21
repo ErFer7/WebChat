@@ -3,7 +3,7 @@ package com.ufsc.webchat.database.service;
 import org.json.JSONObject;
 
 import com.ufsc.webchat.database.command.UserInfoDtoByUserNameQueryCommand;
-import com.ufsc.webchat.database.command.UserSaveQueryCommand;
+import com.ufsc.webchat.database.command.UserSaveCommand;
 import com.ufsc.webchat.database.model.UserDto;
 import com.ufsc.webchat.database.validator.UserRegisterValidator;
 import com.ufsc.webchat.model.ServiceResponse;
@@ -14,7 +14,7 @@ import com.ufsc.webchat.server.PasswordHandler;
 public class UserService {
 
 	private final UserRegisterValidator userRegisterValidator = new UserRegisterValidator();
-	private final UserSaveQueryCommand userSaveCommand = new UserSaveQueryCommand();
+	private final UserSaveCommand userSaveCommand = new UserSaveCommand();
 	private final UserInfoDtoByUserNameQueryCommand userInfoDtoByUserNameCommand = new UserInfoDtoByUserNameQueryCommand();
 
 	public ServiceResponse register(JSONObject payload) {

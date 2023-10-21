@@ -7,7 +7,7 @@ import java.util.List;
 import com.ufsc.webchat.database.EntityManagerProvider;
 import com.ufsc.webchat.database.JPAQueryFactory;
 
-public class ChatMembersByChatIdQueryCommand {
+public class UserIdsByChatIdQueryCommand {
 
 	public List<Long> execute(Long chatId) {
 		try (JPAQueryFactory queryFactory = new JPAQueryFactory(EntityManagerProvider.getEntityManager())) {

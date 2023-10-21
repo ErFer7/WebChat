@@ -11,10 +11,10 @@ import org.json.JSONObject;
 
 import com.ufsc.webchat.database.command.ChatByIdQueryCommand;
 import com.ufsc.webchat.database.command.ChatMemberByUserIdChatIdQueryCommand;
-import com.ufsc.webchat.database.command.ChatMemberSaveQueryCommand;
-import com.ufsc.webchat.database.command.ChatMembersByChatIdQueryCommand;
-import com.ufsc.webchat.database.command.ChatSaveQueryCommand;
+import com.ufsc.webchat.database.command.ChatMemberSaveCommand;
+import com.ufsc.webchat.database.command.ChatSaveCommand;
 import com.ufsc.webchat.database.command.UserIdByNameQueryCommand;
+import com.ufsc.webchat.database.command.UserIdsByChatIdQueryCommand;
 import com.ufsc.webchat.database.model.UserSearchResultDto;
 import com.ufsc.webchat.database.validator.ChatGroupAdditionValidator;
 import com.ufsc.webchat.database.validator.ChatGroupValidator;
@@ -25,14 +25,14 @@ import com.ufsc.webchat.protocol.enums.Status;
 
 public class ChatService {
 	private final UserIdByNameQueryCommand userIdByNameCommand = new UserIdByNameQueryCommand();
-	private final ChatSaveQueryCommand chatSaveCommand = new ChatSaveQueryCommand();
+	private final ChatSaveCommand chatSaveCommand = new ChatSaveCommand();
 	private final ChatGroupValidator chatGroupValidator = new ChatGroupValidator();
-	private final ChatMemberSaveQueryCommand chatMemberSaveCommand = new ChatMemberSaveQueryCommand();
+	private final ChatMemberSaveCommand chatMemberSaveCommand = new ChatMemberSaveCommand();
 	private final ChatGroupAdditionValidator chatGroupAdditionValidator = new ChatGroupAdditionValidator();
 	private final ChatByIdQueryCommand chatByIdCommand = new ChatByIdQueryCommand();
 	private final ChatMemberByUserIdChatIdQueryCommand chatMemberByUserIdChatIdCommand = new ChatMemberByUserIdChatIdQueryCommand();
 	private final ChatMembersListingValidator chatMembersListingValidator = new ChatMembersListingValidator();
-	private final ChatMembersByChatIdQueryCommand chatMembersByChatIdCommand = new ChatMembersByChatIdQueryCommand();
+	private final UserIdsByChatIdQueryCommand chatMembersByChatIdCommand = new UserIdsByChatIdQueryCommand();
 
 	public ServiceResponse addToChatGroup(JSONObject payload) {
 		Long userId = payload.getLong("userId");
