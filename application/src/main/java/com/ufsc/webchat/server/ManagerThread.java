@@ -260,13 +260,8 @@ public class ManagerThread extends Thread {
 		if (!this.authenticateClient(packet, PayloadType.GROUP_CHAT_ADDITION)) {
 			return;
 		}
-
-		JSONObject payload = packet.getPayload();
-		Long userId = payload.getLong("userId");
-		Long chatId = payload.getLong("chatId");
-		Long addedUserId = payload.getLong("addedUserId");
-
-		// TODO: Implementar o fluxo de adição de usuários em conversas
+		ServiceAnswer serviceAnswer = this.chatService.addToChatGroup(packet.getPayload());
+		this.externalHandler.sendPacketById(packet.getId(), this.packetFactory.createGroupChatAdditionResponse(serviceAnswer.status(), serviceAnswer.message()));
 	}
 
 	private void receiveClientMessage(Packet packet) {
