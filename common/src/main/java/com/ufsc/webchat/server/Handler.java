@@ -108,7 +108,7 @@ public abstract class Handler extends AbstractWebSocketHandler {
 	}
 
 	public AbstractSelectableChannel getInternalChannel() {
-		return internalChannel;
+		return this.internalChannel;
 	}
 
 	public void associateIdToHost(String host, String id) {

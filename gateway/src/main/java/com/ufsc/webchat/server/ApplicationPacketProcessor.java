@@ -4,11 +4,13 @@ import static java.lang.System.getProperty;
 import static java.util.Objects.isNull;
 
 import java.util.HashMap;
+import java.util.List;
 
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.ufsc.webchat.protocol.JSONValidator;
 import com.ufsc.webchat.protocol.Packet;
 import com.ufsc.webchat.protocol.PacketFactory;
 import com.ufsc.webchat.protocol.enums.OperationType;
@@ -55,6 +57,14 @@ public class ApplicationPacketProcessor {
 	public void receiveApplicationConnectionRequest(Packet packet) {
 		String id = packet.getId();
 		JSONObject payload = packet.getPayload();
+		if (isNull(payload)) {
+			return;
+		}
+
+		var missingFields = JSONValidator.validate(payload, List.of("host", "identifier", "password", "externalPort"));
+		if (!missingFields.isEmpty()) {
+			return;
+		}
 
 		String identifier = payload.getString("identifier");
 		String password = payload.getString("password");

@@ -3,11 +3,13 @@ package com.ufsc.webchat.server;
 import static java.util.Objects.isNull;
 
 import java.util.HashMap;
+import java.util.List;
 
 import org.json.JSONObject;
 
 import com.ufsc.webchat.database.service.UserService;
 import com.ufsc.webchat.model.ServiceResponse;
+import com.ufsc.webchat.protocol.JSONValidator;
 import com.ufsc.webchat.protocol.Packet;
 import com.ufsc.webchat.protocol.PacketFactory;
 import com.ufsc.webchat.protocol.enums.OperationType;
@@ -45,10 +47,19 @@ public class ClientPacketProcessor {
 	private void receiveClientRoutingRequest(Packet packet) {
 		String clientId = packet.getId();
 		JSONObject payload = packet.getPayload();
+
+		if (isNull(payload)) {
+			return;
+		}
+		var missingFields = JSONValidator.validate(payload, List.of("host", "username", "password"));
+		if (!missingFields.isEmpty()) {
+			//TODO: Avaliar possibilidade de retornar ao cliente que o pacote está inválido
+			// Se eu tiver host/id, posso enviar um pacote de erro para o cliente sobre username/password
+			return;
+		}
+
 		String host = payload.getString("host");
-
 		this.serverHandler.associateIdToHost(host, clientId);
-
 		Long userId = this.userService.login(packet.getPayload());
 
 		if (isNull(userId)) {
@@ -65,10 +76,18 @@ public class ClientPacketProcessor {
 	private void receiveClientRegisterRequest(Packet packet) {
 		String clientId = packet.getId();
 		JSONObject payload = packet.getPayload();
+
+		if (isNull(payload)) {
+			return;
+		}
+
+		var missingFields = JSONValidator.validate(payload, List.of("host", "username", "password"));
+		if (!missingFields.isEmpty()) {
+			return;
+		}
+
 		String host = payload.getString("host");
-
 		this.serverHandler.associateIdToHost(host, clientId);
-
 		ServiceResponse serviceAnswer = this.userService.register(packet.getPayload());
 		this.serverHandler.sendPacketById(clientId, this.packetFactory.createClientRegisterUserResponse(serviceAnswer.status(), serviceAnswer.message()));
 	}

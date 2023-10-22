@@ -19,7 +19,6 @@ public class UserService {
 
 	public ServiceResponse register(JSONObject payload) {
 		var userDto = new UserDto();
-		// TODO: VERIFICAR SE PAYLOAD.GET NÃO GERA EXCEÇÕES
 		userDto.setUsername(payload.getString("username"));
 		userDto.setPassword(payload.getString("password"));
 		ValidationMessage validationMessage = this.userRegisterValidator.validate(userDto);
@@ -36,7 +35,6 @@ public class UserService {
 		var userDto = new UserDto();
 		userDto.setUsername(payload.getString("username"));
 		userDto.setPassword(payload.getString("password"));
-		// TODO: VERIFICAR SE NÃO GERA EXCEÇÕES
 
 		var userInfoDto = this.userInfoDtoByUserNameCommand.execute(userDto.getUsername());
 		if (userInfoDto != null && PasswordHandler.validatePasswordWithHash(userDto.getPassword(), userInfoDto.getPasswordHash())) {

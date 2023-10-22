@@ -16,7 +16,6 @@
 
 ```json
 {
-    "host": "[ip:port]",
     "hostType": "[type]",
     "token": "[token]" | null,
     "status": "[status]" | null,
