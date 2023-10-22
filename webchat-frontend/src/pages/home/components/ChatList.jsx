@@ -15,7 +15,7 @@ export function ChatList({ chats }) {
       <List component='nav' aria-label='main mailbox folders'>
         {chats.map((chat) => {
           return (
-            <>
+            <div key={chat.id}>
               <ListItemButton
                 selected={selectedIndex === chat.id}
                 onClick={(event) => handleListItemClick(event, chat.id)}
@@ -26,7 +26,7 @@ export function ChatList({ chats }) {
                 <ListItemText primary={chat.name} secondary={`id: ${chat.id} e groupchat: ${chat.groupChat}`} />
               </ListItemButton>
               <Divider />
-            </>
+            </div>
           )
         })}
       </List>

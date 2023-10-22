@@ -1,5 +1,16 @@
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
-import { Avatar, Box, Button, CssBaseline, Grid, Paper, TextField, Typography } from '@mui/material'
+import {
+  Alert,
+  Avatar,
+  Box,
+  Button,
+  CircularProgress,
+  CssBaseline,
+  Grid,
+  Paper,
+  TextField,
+  Typography,
+} from '@mui/material'
 
 import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
@@ -8,38 +19,54 @@ import { useAuth } from '../../hooks/useAuth'
 
 function LoginPage() {
   const { isAuthenticated, login } = useAuth()
-  const { sendJsonMessage, lastJsonMessage } = useWebSocket('ws://127.0.0.1:8080', {
-    onOpen: () => console.log(`Connected to App WS`),
-    onClose: () => console.log('Connection Closed'),
-  })
+  const { sendJsonMessage, lastJsonMessage } = useWebSocket(
+    'ws://127.0.0.1:8080',
+    {
+      onOpen: () => console.log(`Connected to App WS`),
+      onClose: () => console.log('Connection Closed'),
+    },
+    !isAuthenticated
+  )
 
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
   const [gatewayConnectionInfo, setGatewayConnectionInfo] = useState({})
+  const [alert, setAlert] = useState()
 
-  const handleUsernameChange = (event) => setUsername(event.target.value)
-  const handlePasswordChange = (event) => setPassword(event.target.value)
+  const commonRequestPacketProps = {
+    id: gatewayConnectionInfo.id,
+    hostType: 'CLIENT',
+    token: null,
+    status: null,
+    operationType: 'REQUEST',
+    payload: {
+      username: username,
+      password: password,
+      host: gatewayConnectionInfo.host,
+    },
+  }
+
+  const handleUsernameChange = (event) => {
+    setUsername(event.target.value)
+    alert && setAlert(null)
+  }
+  const handlePasswordChange = (event) => {
+    setPassword(event.target.value)
+    alert && setAlert(null)
+  }
 
   const handleSubmit = (event) => {
     event.preventDefault()
     const buttonName = event.nativeEvent.submitter.name
     if (buttonName == 'login') {
-      const loginPacket = {
-        id: gatewayConnectionInfo.id,
-        hostType: 'CLIENT',
-        token: null,
-        status: null,
-        operationType: 'REQUEST',
-        payloadType: 'ROUTING',
-        payload: {
-          username: username,
-          password: password,
-          host: gatewayConnectionInfo.host,
-        },
-      }
+      const loginPacket = { ...commonRequestPacketProps, payloadType: 'ROUTING' }
+      setLoading(true)
       sendJsonMessage(loginPacket)
     } else if (buttonName == 'register') {
-      // TODO: send register packet and receive register packet
+      const registerPacket = { ...commonRequestPacketProps, payloadType: 'USER_CREATION' }
+      setLoading(true)
+      sendJsonMessage(registerPacket)
     }
   }
 
@@ -51,8 +78,20 @@ function LoginPage() {
           id: data?.id,
           host: data?.payload.host,
         })
-      } else if (data?.payloadType == 'ROUTING' && data?.status == 'OK') {
-        login(data)
+      } else if (data?.payloadType == 'ROUTING') {
+        if (data?.status == 'OK') {
+          login(data)
+        } else if (data?.status == 'ERROR') {
+          setAlert({ severity: 'error', message: data?.payload?.message })
+        }
+        setLoading(false)
+      } else if (data?.payloadType == 'USER_CREATION') {
+        if (data?.status == 'CREATED') {
+          setAlert({ severity: 'success', message: 'Usuário criado com sucesso!' })
+        } else if (data?.status == 'ERROR') {
+          setAlert({ severity: 'error', message: data?.payload?.message })
+        }
+        setLoading(false)
       }
       console.log(data)
     }
@@ -90,9 +129,9 @@ function LoginPage() {
             <LockOutlinedIcon />
           </Avatar>
           <Typography component='h1' variant='h5'>
-            WebChat
+            Webchat
           </Typography>
-          <Box component='form' noValidate onSubmit={handleSubmit} sx={{ mt: 1 }}>
+          <Box sx={{ width: '90%', flexGrow: 1, mt: 1 }} component='form' noValidate onSubmit={handleSubmit}>
             <TextField
               margin='normal'
               required
@@ -115,6 +154,12 @@ function LoginPage() {
               autoComplete='current-password'
               onChange={handlePasswordChange}
             />
+            {loading && <CircularProgress />}
+            {alert && (
+              <Alert severity={alert.severity} sx={{ width: '100%', flexGrow: 1, mt: 2 }}>
+                {alert.message}
+              </Alert>
+            )}
             <Button type='submit' name='login' fullWidth variant='contained' sx={{ mt: 3, mb: 2 }}>
               Login
             </Button>

@@ -15,7 +15,7 @@ export function UserList({ users }) {
       <List component='nav' aria-label='main mailbox folders'>
         {users.map((user) => {
           return (
-            <>
+            <div key={user.id}>
               <ListItemButton
                 selected={selectedIndex === user.id}
                 onClick={(event) => handleListItemClick(event, user.id)}
@@ -26,7 +26,7 @@ export function UserList({ users }) {
                 <ListItemText primary={user.username} secondary={`id: ${user.id}`} />
               </ListItemButton>
               <Divider />
-            </>
+            </div>
           )
         })}
       </List>
