@@ -1,9 +1,8 @@
 package com.ufsc.webchat.database.service;
 
-import static java.util.Objects.isNull;
-
 import org.json.JSONObject;
 
+import com.ufsc.webchat.database.EntityManagerProvider;
 import com.ufsc.webchat.database.command.MessageListByChatIdQueryCommand;
 import com.ufsc.webchat.database.command.MessageSaveCommand;
 import com.ufsc.webchat.database.model.MessageCreateDto;
@@ -12,6 +11,9 @@ import com.ufsc.webchat.database.validator.MessageValidator;
 import com.ufsc.webchat.model.ServiceResponse;
 import com.ufsc.webchat.model.ValidationMessage;
 import com.ufsc.webchat.protocol.enums.Status;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityTransaction;
 
 public class MessageService {
 
@@ -32,12 +34,17 @@ public class MessageService {
 			return new ServiceResponse(Status.ERROR, validationMessage.message(), null);
 		}
 
-		Long messageId = this.messageSaveCommand.execute(messageDto);
-		if (isNull(messageId)) {
-			return new ServiceResponse(Status.ERROR, "Erro ao salvar mensagem!", null);
+		EntityManager em = EntityManagerProvider.getEntityManager();
+		try (em) {
+			EntityTransaction transaction = em.getTransaction();
+			transaction.begin();
+			Long messageId = this.messageSaveCommand.execute(messageDto, em);
+			transaction.commit();
+			return new ServiceResponse(Status.CREATED, null, messageId);
+		} catch (Exception e) {
+			em.getTransaction().rollback();
+			return new ServiceResponse(Status.ERROR, "Erro ao salvar mensagem no banco de dados!", null);
 		}
-
-		return new ServiceResponse(Status.CREATED, null, messageId);
 	}
 
 	public ServiceResponse loadMessages(JSONObject payload) {

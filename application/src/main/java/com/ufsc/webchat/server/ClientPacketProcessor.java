@@ -178,7 +178,7 @@ public class ClientPacketProcessor {
 		if (!this.authenticateClient(packet, PayloadType.MESSAGE)) {
 			return;
 		}
-		ServiceResponse serviceResponse = this.chatService.loadChatIdByUsers(packet.getPayload());
+		ServiceResponse serviceResponse = this.chatService.loadOrSaveChatIdByUsers(packet.getPayload());
 		var responsePayload = new JSONObject(Map.of("chatId", serviceResponse.payload()));
 		var responsePacket = this.packetFactory.createGenericClientResponse(serviceResponse.status(), PayloadType.GET_USER_CHAT_ID, responsePayload, serviceResponse.message());
 		this.externalHandler.sendPacketById(packet.getId(), responsePacket);

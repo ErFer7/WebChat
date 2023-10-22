@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 import org.json.JSONObject;
 
+import com.ufsc.webchat.database.EntityManagerProvider;
 import com.ufsc.webchat.database.command.ChatDtoListByUserIdQueryCommand;
 import com.ufsc.webchat.database.command.ChatIdByUsersIdsQueryCommand;
 import com.ufsc.webchat.database.command.ChatMemberSaveCommand;
@@ -19,6 +20,9 @@ import com.ufsc.webchat.database.validator.ChatGroupValidator;
 import com.ufsc.webchat.model.ServiceResponse;
 import com.ufsc.webchat.model.ValidationMessage;
 import com.ufsc.webchat.protocol.enums.Status;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityTransaction;
 
 public class ChatService {
 
@@ -42,12 +46,18 @@ public class ChatService {
 			return new ServiceResponse(Status.ERROR, validationMessage.message(), null);
 		}
 
-		boolean success = this.chatMemberSaveCommand.execute(chatId, addedUserId);
-		if (!success) {
-			return new ServiceResponse(Status.ERROR, "Erro ao criar grupo!", null);
+		EntityManager em = EntityManagerProvider.getEntityManager();
+		try (em) {
+			EntityTransaction transaction = em.getTransaction();
+			transaction.begin();
+			this.chatMemberSaveCommand.execute(chatId, addedUserId, em);
+			transaction.commit();
+			return new ServiceResponse(Status.OK, "Usuário adicionado ao grupo com sucesso!", null);
+		} catch (Exception e) {
+			em.getTransaction().rollback();
+			return new ServiceResponse(Status.ERROR, "Erro ao adicionar no grupo!", null);
 		}
 
-		return new ServiceResponse(Status.OK, "Usuário adicionado ao grupo com sucesso!", null);
 	}
 
 	public ServiceResponse saveChatGroup(JSONObject payload) {
@@ -73,20 +83,23 @@ public class ChatService {
 			chatMembers.add(userId);
 		}
 
-		Long chatId = this.chatSaveCommand.execute(groupName, true);
-
-		for (Long memberId : chatMembers) {
-			boolean success = this.chatMemberSaveCommand.execute(chatId, memberId);
-			if (!success) {
-				return new ServiceResponse(Status.ERROR, "Erro ao criar grupo!", null);
+		EntityManager em = EntityManagerProvider.getEntityManager();
+		try (em) {
+			EntityTransaction transaction = em.getTransaction();
+			transaction.begin();
+			Long chatId = this.chatSaveCommand.execute(groupName, true, em);
+			for (Long memberId : chatMembers) {
+				this.chatMemberSaveCommand.execute(chatId, memberId, em);
 			}
+			transaction.commit();
+			return new ServiceResponse(Status.CREATED, null, chatId);
+		} catch (Exception e) {
+			em.getTransaction().rollback();
+			return new ServiceResponse(Status.ERROR, "Erro ao criar grupo!", null);
 		}
-
-		return new ServiceResponse(Status.CREATED, null, chatId);
 	}
 
-	//TODO: Remover erros de banco como resposta (ou encapsular tudo isso em transações, pra não ficar verificando e dar rollback certo)
-	public ServiceResponse loadChatIdByUsers(JSONObject payload) {
+	public ServiceResponse loadOrSaveChatIdByUsers(JSONObject payload) {
 		Long userId = payload.getLong("userId");
 		String targetUsername = payload.getString("targetUsername");
 		Long targetUserId = this.userService.loadUserIdByName(targetUsername);
@@ -96,18 +109,26 @@ public class ChatService {
 
 		Long chatId = this.chatIdByUsersIdsQueryCommand.execute(userId, targetUserId);
 		if (!isNull(chatId)) {
-			return new ServiceResponse(Status.OK, "Chat encontrado!", chatId);
+			return new ServiceResponse(Status.OK, null, chatId);
 		}
-		Long newChatId = this.chatSaveCommand.execute(null, false);
-		if (isNull(newChatId)) {
+
+		return this.saveChatOneToOne(userId, targetUserId);
+	}
+
+	private ServiceResponse saveChatOneToOne(Long userId1, Long userId2) {
+		EntityManager em = EntityManagerProvider.getEntityManager();
+		try (em) {
+			EntityTransaction transaction = em.getTransaction();
+			transaction.begin();
+			Long newChatId = this.chatSaveCommand.execute(null, false, em);
+			this.chatMemberSaveCommand.execute(newChatId, userId1, em);
+			this.chatMemberSaveCommand.execute(newChatId, userId2, em);
+			transaction.commit();
+			return new ServiceResponse(Status.CREATED, null, newChatId);
+		} catch (Exception e) {
+			em.getTransaction().rollback();
 			return new ServiceResponse(Status.ERROR, "Erro ao criar chat!", null);
 		}
-		boolean createFirstRL = this.chatMemberSaveCommand.execute(newChatId, userId);
-		boolean createSecondRL = this.chatMemberSaveCommand.execute(newChatId, targetUserId);
-		if (!createFirstRL || !createSecondRL) {
-			return new ServiceResponse(Status.ERROR, "Erro ao criar chat!", null);
-		}
-		return new ServiceResponse(Status.CREATED, null, newChatId);
 	}
 
 	public List<ChatDto> loadChatDtoListByUserId(JSONObject payload) {
@@ -130,4 +151,5 @@ public class ChatService {
 		userSearchResultDto.setNotFoundUsers(notFoundUsers);
 		return userSearchResultDto;
 	}
+
 }

@@ -2,6 +2,7 @@ package com.ufsc.webchat.database.service;
 
 import org.json.JSONObject;
 
+import com.ufsc.webchat.database.EntityManagerProvider;
 import com.ufsc.webchat.database.command.UserInfoDtoByUserNameQueryCommand;
 import com.ufsc.webchat.database.command.UserSaveCommand;
 import com.ufsc.webchat.database.model.UserDto;
@@ -10,6 +11,8 @@ import com.ufsc.webchat.model.ServiceResponse;
 import com.ufsc.webchat.model.ValidationMessage;
 import com.ufsc.webchat.protocol.enums.Status;
 import com.ufsc.webchat.server.PasswordHandler;
+
+import jakarta.persistence.EntityManager;
 
 public class UserService {
 
@@ -25,10 +28,17 @@ public class UserService {
 		if (!validationMessage.isValid()) {
 			return new ServiceResponse(Status.ERROR, validationMessage.message(), null);
 		}
-		if (!this.userSaveCommand.execute(userDto)) {
+
+		EntityManager em = EntityManagerProvider.getEntityManager();
+		try (em) {
+			em.getTransaction().begin();
+			this.userSaveCommand.execute(userDto, em);
+			em.getTransaction().commit();
+			return new ServiceResponse(Status.CREATED, null, null);
+		} catch (Exception e) {
+			em.getTransaction().rollback();
 			return new ServiceResponse(Status.ERROR, "Erro ao cadastrar usuário, tente novamente.", null);
 		}
-		return new ServiceResponse(Status.CREATED, null, null);
 	}
 
 	public Long login(JSONObject payload) {
