@@ -57,10 +57,10 @@ public class ClientPacketProcessor {
 		case GROUP_CHAT_CREATION -> this.receiveClientGroupChatCreationRequest(packet);
 		case CHAT_LISTING -> this.receiveClientChatListingRequest(packet);
 		case GROUP_CHAT_ADDITION -> this.receiveClientGroupChatAdditionRequest(packet);
+		case GET_USER_CHAT_ID -> this.receiveClientGetUserChatId(packet);
 		case MESSAGE -> this.receiveClientMessage(packet);
 		case MESSAGE_LISTING -> this.receiveClientMessageListing(packet);
 		case DISCONNECTION -> this.receiveClientDisconnectionRequest(packet);
-		case GET_USER_CHAT_ID -> this.receiveClientGetUserChatId(packet);
 		default -> logger.warn("Unexpected packet type: {}", packet.getPayloadType());
 		}
 	}

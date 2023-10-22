@@ -55,19 +55,78 @@ def create_application_connection_packet(id, host, token, user_id):
     return packet
 
 
-# def create_group_chat(id, host, token, user_id):
-#     packet = {}
-#     packet['id'] = id
-#     packet['hostType'] = 'CLIENT'
-#     packet['token'] = connection_token
-#     packet['status'] = None
-#     packet['operationType'] = 'REQUEST'
-#     packet['payloadType'] = 'GROUP_CHAT_CREATION'
-#     packet['payload'] = {}
-#     packet['payload']['userId'] = user_id
-#     packet['payload']['membersUsernames'] = ['joaoteste', 'MARIATESTE']
-#     packet['payload']['groupName'] = 'familiateste2'
+def create_group_chat(id, token, user_id):
+    packet = {}
+    packet['id'] = id
+    packet['hostType'] = 'CLIENT'
+    packet['token'] = token
+    packet['status'] = None
+    packet['operationType'] = 'REQUEST'
+    packet['payloadType'] = 'GROUP_CHAT_CREATION'
+    packet['payload'] = {}
+    packet['payload']['userId'] = user_id
+    packet['payload']['membersUsernames'] = ['MARIATESTE']
+    packet['payload']['groupName'] = 'teste_sem_joao'
 
+    packet = dumps(packet)
+    return packet
+
+
+def user_listing(id, token, user_id):
+    packet = {}
+    packet['id'] = id
+    packet['hostType'] = 'CLIENT'
+    packet['token'] = token
+    packet['status'] = None
+    packet['operationType'] = 'REQUEST'
+    packet['payloadType'] = 'USER_LISTING'
+    packet['payload'] = {}
+    packet['payload']['userId'] = user_id
+    packet = dumps(packet)
+    return packet
+
+
+def chat_listing(id, token, user_id):
+    packet = {}
+    packet['id'] = id
+    packet['hostType'] = 'CLIENT'
+    packet['token'] = token
+    packet['status'] = None
+    packet['operationType'] = 'REQUEST'
+    packet['payloadType'] = 'CHAT_LISTING'
+    packet['payload'] = {}
+    packet['payload']['userId'] = user_id
+    packet = dumps(packet)
+    return packet
+
+
+def group_chat_addition(id, token, user_id):
+    packet = {}
+    packet['id'] = id
+    packet['hostType'] = 'CLIENT'
+    packet['token'] = token
+    packet['status'] = None
+    packet['operationType'] = 'REQUEST'
+    packet['payloadType'] = 'GROUP_CHAT_ADDITION'
+    packet['payload'] = {}
+    packet['payload']['userId'] = user_id
+    packet['payload']['addedUserName'] = 'joaoteste'
+    packet['payload']['chatId'] = 4
+    packet = dumps(packet)
+    return packet
+
+
+def get_user_chat_id(id, token, user_id):
+    packet = {}
+    packet['id'] = id
+    packet['hostType'] = 'CLIENT'
+    packet['token'] = token
+    packet['status'] = None
+    packet['operationType'] = 'REQUEST'
+    packet['payloadType'] = 'GET_USER_CHAT_ID'
+    packet['payload'] = {}
+    packet['payload']['userId'] = user_id
+    packet['payload']['targetUsername'] = 'joaoteste'
     packet = dumps(packet)
     return packet
 
@@ -92,4 +151,12 @@ host = handshake['payload']['host']
 token = login_response['payload']['token']
 
 socket.send(create_application_connection_packet(id, host, token, user_id))
+socket.recv()
+
+# socket.send(user_listing(id, token, user_id))
+# socket.send(chat_listing(id, token, user_id))
+# socket.send(create_group_chat(id, token, user_id))
+# socket.send(group_chat_addition(id, token, user_id))
+socket.send(get_user_chat_id(id, token, user_id))
+
 print(socket.recv())
