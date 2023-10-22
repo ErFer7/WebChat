@@ -18,7 +18,7 @@ public class UserSaveCommand {
 		transaction.begin();
 
 		User user = new User();
-		user.setName(userDto.getIdentifier());
+		user.setName(userDto.getUsername());
 		user.setPasswordHash(PasswordHandler.generatePasswordHash(userDto.getPassword()));
 		em.persist(user);
 

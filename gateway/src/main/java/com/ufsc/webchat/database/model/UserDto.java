@@ -2,15 +2,15 @@ package com.ufsc.webchat.database.model;
 
 public class UserDto {
 
-	String identifier;
-	String password;
+	private String username;
+	private String password;
 
-	public String getIdentifier() {
-		return this.identifier;
+	public String getUsername() {
+		return this.username;
 	}
 
-	public void setIdentifier(String identifier) {
-		this.identifier = identifier;
+	public void setUsername(String username) {
+		this.username = username;
 	}
 
 	public String getPassword() {

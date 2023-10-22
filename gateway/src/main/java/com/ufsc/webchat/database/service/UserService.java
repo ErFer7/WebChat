@@ -20,7 +20,7 @@ public class UserService {
 	public ServiceResponse register(JSONObject payload) {
 		var userDto = new UserDto();
 		// TODO: VERIFICAR SE PAYLOAD.GET NÃO GERA EXCEÇÕES
-		userDto.setIdentifier(payload.getString("identifier"));
+		userDto.setUsername(payload.getString("username"));
 		userDto.setPassword(payload.getString("password"));
 		ValidationMessage validationMessage = this.userRegisterValidator.validate(userDto);
 		if (!validationMessage.isValid()) {
@@ -29,16 +29,16 @@ public class UserService {
 		if (!this.userSaveCommand.execute(userDto)) {
 			return new ServiceResponse(Status.ERROR, "Erro ao cadastrar usuário, tente novamente.", null);
 		}
-		return new ServiceResponse(Status.OK, "Usuário cadastrado com sucesso!", null);
+		return new ServiceResponse(Status.CREATED, null, null);
 	}
 
 	public Long login(JSONObject payload) {
 		var userDto = new UserDto();
-		userDto.setIdentifier(payload.getString("identifier"));
+		userDto.setUsername(payload.getString("username"));
 		userDto.setPassword(payload.getString("password"));
 		// TODO: VERIFICAR SE NÃO GERA EXCEÇÕES
 
-		var userInfoDto = this.userInfoDtoByUserNameCommand.execute(userDto.getIdentifier());
+		var userInfoDto = this.userInfoDtoByUserNameCommand.execute(userDto.getUsername());
 		if (userInfoDto != null && PasswordHandler.validatePasswordWithHash(userDto.getPassword(), userInfoDto.getPasswordHash())) {
 			return userInfoDto.getId();
 		}
