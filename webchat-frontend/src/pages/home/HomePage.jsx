@@ -1,4 +1,5 @@
 import AccountCircle from '@mui/icons-material/AccountCircle'
+import AddIcon from '@mui/icons-material/Add'
 import LogoutIcon from '@mui/icons-material/Logout'
 import { TabContext, TabList, TabPanel } from '@mui/lab'
 
@@ -8,6 +9,7 @@ import { Navigate } from 'react-router-dom'
 import useWebSocket from 'react-use-websocket'
 import { useAuth } from '../../hooks/useAuth'
 import ChatList from './components/ChatList'
+import CreateGroupForm from './components/CreateGroupForm'
 import { UserList } from './components/UserList'
 
 function HomePage() {
@@ -27,6 +29,8 @@ function HomePage() {
   const [chatList, setChatList] = useState()
   const [userList, setUserList] = useState()
   const [tabValue, setTableValue] = useState('chatList')
+  const [groupForm, setGroupForm] = useState({ groupName: '', usernames: [] })
+  const [createGroupAlert, setCreateGroupAlert] = useState()
 
   const loggedUsername = useMemo(
     () => userList?.find((user) => user.id == applicationConnectionInfo.userId).username,
@@ -57,6 +61,20 @@ function HomePage() {
     setTableValue(newValue)
   }
 
+  const handleCreateGroup = (model) => {
+    console.log(model)
+    const createGroupPacket = {
+      ...commonConnectedRequestPacket,
+      payloadType: 'GROUP_CHAT_CREATION',
+      payload: {
+        userId: applicationConnectionInfo.userId,
+        groupName: model.groupName,
+        membersUsernames: model.usernames,
+      },
+    }
+    sendJsonMessage(createGroupPacket)
+  }
+
   useEffect(() => {
     if (lastJsonMessage) {
       const data = lastJsonMessage
@@ -84,6 +102,14 @@ function HomePage() {
         setUserList(newUserList)
       } else if (data?.payloadType == 'CHAT_LISTING' && data?.status == 'OK') {
         setChatList(data?.payload?.chats)
+      } else if (data?.payloadType == 'GROUP_CHAT_CREATION') {
+        if (data?.status == 'CREATED') {
+          setCreateGroupAlert({ severity: 'success', message: 'Grupo criado com sucesso!' })
+          setGroupForm({ groupName: '', usernames: [] })
+          sendJsonMessage({ ...commonConnectedRequestPacket, payloadType: 'CHAT_LISTING' }) // reload chat list
+        } else if (data?.status == 'ERROR') {
+          setCreateGroupAlert({ severity: 'error', message: data?.payload?.message })
+        }
       }
       console.log(data)
     }
@@ -123,6 +149,7 @@ function HomePage() {
                     <TabList onChange={handleChangeTab}>
                       <Tab label='Conversas' value='chatList' />
                       <Tab label='Usuários' value='userList' />
+                      <Tab label={<AddIcon />} value='createGroup'></Tab>
                     </TabList>
                   </Box>
                   <TabPanel value='chatList' sx={{ p: 0 }}>
@@ -130,6 +157,15 @@ function HomePage() {
                   </TabPanel>
                   <TabPanel value='userList' sx={{ p: 0 }}>
                     <UserList users={userList} />
+                  </TabPanel>
+                  <TabPanel value='createGroup' sx={{ p: 0 }}>
+                    <CreateGroupForm
+                      groupForm={groupForm}
+                      setGroupForm={setGroupForm}
+                      handleCreateGroup={handleCreateGroup}
+                      alert={createGroupAlert}
+                      setAlert={setCreateGroupAlert}
+                    />
                   </TabPanel>
                 </TabContext>
               </Box>

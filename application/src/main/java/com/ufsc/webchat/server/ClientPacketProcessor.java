@@ -1,5 +1,7 @@
 package com.ufsc.webchat.server;
 
+import static java.util.Objects.isNull;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -119,7 +121,8 @@ public class ClientPacketProcessor {
 		}
 
 		ServiceResponse serviceResponse = this.chatService.saveChatGroup(packet.getPayload());
-		JSONObject responsePayload = new JSONObject(Map.of("chatId", serviceResponse.payload()));
+		var chatId = serviceResponse.payload();
+		JSONObject responsePayload = isNull(chatId) ? null : new JSONObject(Map.of("chatId", chatId));
 		var responsePacket = this.packetFactory.createGenericClientResponse(serviceResponse.status(), PayloadType.GROUP_CHAT_CREATION, responsePayload, serviceResponse.message());
 		this.externalHandler.sendPacketById(packet.getId(), responsePacket);
 	}
