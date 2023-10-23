@@ -1,4 +1,4 @@
-import InboxIcon from '@mui/icons-material/Inbox'
+import AccountCircleIcon from '@mui/icons-material/AccountCircle'
 import { Box, Divider, List, ListItemButton, ListItemIcon, ListItemText } from '@mui/material'
 import PropTypes from 'prop-types'
 import { useState } from 'react'
@@ -11,7 +11,7 @@ export function UserList({ users }) {
   }
 
   return (
-    <Box sx={{ width: '100%', maxWidth: 360, bgcolor: 'background.paper' }}>
+    <Box sx={{ width: '100%', bgcolor: 'background.paper' }}>
       <List component='nav' aria-label='main mailbox folders'>
         {users.map((user) => {
           return (
@@ -21,9 +21,9 @@ export function UserList({ users }) {
                 onClick={(event) => handleListItemClick(event, user.id)}
               >
                 <ListItemIcon>
-                  <InboxIcon />
+                  <AccountCircleIcon />
                 </ListItemIcon>
-                <ListItemText primary={user.username} secondary={`id: ${user.id}`} />
+                <ListItemText primary={user.username} />
               </ListItemButton>
               <Divider />
             </div>
