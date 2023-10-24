@@ -164,7 +164,7 @@ public class ClientPacketProcessor {
 			return;
 		}
 		//TODO: Avaliar unchecked cast
-		this.broadCastClientMessage((List<Long>) userServiceResponse.payload(), senderId, (Long) messageServiceResponse.payload(), payload);
+		this.broadCastClientMessage((List<Long>) userServiceResponse.payload(), senderId, payload);
 	}
 
 	private void receiveClientMessageListing(Packet packet) {
@@ -187,7 +187,7 @@ public class ClientPacketProcessor {
 		this.externalHandler.sendPacketById(packet.getId(), responsePacket);
 	}
 
-	private void broadCastClientMessage(List<Long> targetUsersIds, Long senderId, Long messageId, JSONObject payload) {
+	private void broadCastClientMessage(List<Long> targetUsersIds, Long senderId, JSONObject payload) {
 		for (Long targetUserId : targetUsersIds) {
 			if (targetUserId.equals(senderId)) {
 				continue;
@@ -198,15 +198,8 @@ public class ClientPacketProcessor {
 			if (targetUserClientId != null) {
 				this.externalHandler.sendPacketById(targetUserClientId, this.packetFactory.createApplicationMessageResponse(Status.OK, payload));
 			} else {
-				String applicationId = this.externalUserIdApplicationIdMap.get(targetUserId);
 				payload.put("targetUserId", targetUserId);
-				if (applicationId != null) {
-					this.internalHandler.sendPacketById(applicationId, this.packetFactory.createApplicationMessageForwardingRequest(payload));
-				} else {
-					this.tempMessageMap.put(messageId, payload);
-					this.internalHandler.sendPacketById(this.gatewayId.getString(),
-							this.packetFactory.createApplicationUserApplicationServerRequest(messageId.toString(), targetUserId));
-				}
+				this.internalHandler.sendPacketById(this.gatewayId.getString(), this.packetFactory.createMessageForwarding(payload));
 			}
 		}
 	}

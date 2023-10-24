@@ -1,5 +1,7 @@
 package com.ufsc.webchat.server;
 
+import static java.util.Objects.isNull;
+
 import java.util.HashMap;
 
 import org.json.JSONObject;
@@ -8,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import com.ufsc.webchat.protocol.Packet;
 import com.ufsc.webchat.protocol.PacketFactory;
+import com.ufsc.webchat.protocol.enums.PayloadType;
 import com.ufsc.webchat.protocol.enums.Status;
 import com.ufsc.webchat.utils.SharedString;
 import com.ufsc.webchat.utils.UserContextMap;
@@ -26,14 +29,17 @@ public class GatewayPacketProcessor {
 	private final UserContextMap userContextMap;
 	private final HashMap<Long, String> externalUserIdApplicationIdMap;
 	private final HashMap<Long, JSONObject> tempMessageMap;
+	private final ManagerThread managerThread;
 
-	public GatewayPacketProcessor(ExternalHandler externalHandler,
+	public GatewayPacketProcessor(ManagerThread managerThread,
+			ExternalHandler externalHandler,
 			InternalHandler internalHandler,
 			PacketFactory packetFactory,
 			UserContextMap userContextMap,
 			HashMap<Long, String> externalUserIdApplicationIdMap,
 			HashMap<Long, JSONObject> tempMessageMap,
 			SharedString gatewayId) {
+		this.managerThread = managerThread;
 		this.externalHandler = externalHandler;
 		this.internalHandler = internalHandler;
 		this.packetFactory = packetFactory;
@@ -52,7 +58,7 @@ public class GatewayPacketProcessor {
 		case HOST -> this.receiveGatewayHostInfo(packet);
 		case CONNECTION -> this.receiveGatewayConnectionResponse(packet);
 		case ROUTING -> this.receiveGatewayClientRoutingRequest(packet);
-		case USER_APPLICATION_SERVER -> this.receiveGatewayUserApplicationResponse(packet);
+		case MESSAGE -> this.receiveApplicationMessageForwarding(packet);
 		case DISCONNECTION -> this.receiveGatewayClientDisconnectionResponse(packet);
 		default -> logger.warn("Unexpected packet type: {}", packet.getPayloadType());
 		}
@@ -98,8 +104,15 @@ public class GatewayPacketProcessor {
 		this.userContextMap.remove(userId);
 	}
 
-	private void receiveGatewayUserApplicationResponse(Packet packet) {
-		// TODO: Implementar [CONTINUAR DAQUI]
-	}
+	private void receiveApplicationMessageForwarding(Packet packet) {
+		Long targetUserId = packet.getPayload().getLong("targetId");
 
+		String targetUserClientId = this.userContextMap.getClientId(targetUserId);
+
+		if (!isNull(targetUserClientId)) {
+			this.externalHandler.sendPacketById(targetUserClientId, this.packetFactory.createApplicationMessageResponse(Status.OK, packet.getPayload()));
+		} else {
+			this.externalHandler.sendPacketById(this.gatewayId.getString(), this.packetFactory.createErrorResponse(PayloadType.MESSAGE, "Usuário não conectado"));
+		}
+	}
 }

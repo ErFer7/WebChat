@@ -38,6 +38,14 @@ public class PacketFactory {
 		return this.createPacket(Status.OK, OperationType.INFO, PayloadType.HOST, payload);
 	}
 
+	public Packet createOkResponse(PayloadType payloadType, String message) {
+		JSONObject payload = new JSONObject();
+
+		payload.put("message", message);
+
+		return this.createPacket(Status.OK, OperationType.RESPONSE, payloadType, payload);
+	}
+
 	public Packet createErrorResponse(PayloadType payloadType, String message) {
 		JSONObject payload = new JSONObject();
 
@@ -129,27 +137,9 @@ public class PacketFactory {
 	public Packet createApplicationMessageResponse(Status status, JSONObject payload) {
 		return this.createPacket(status, OperationType.RESPONSE, PayloadType.MESSAGE, payload);
 	}
-
-	public Packet createApplicationMessageForwardingRequest(JSONObject payload) {
+	
+	public Packet createMessageForwarding(JSONObject payload) {
 		return this.createPacket(null, OperationType.REQUEST, PayloadType.MESSAGE, payload);
-	}
-
-	public Packet createApplicationUserApplicationServerRequest(String messageId, Long targetUserId) {
-		JSONObject payload = new JSONObject();
-
-		payload.put("messageId", messageId);
-		payload.put("targetUserId", targetUserId);
-
-		return this.createPacket(null, OperationType.REQUEST, PayloadType.USER_APPLICATION_SERVER, payload);
-	}
-
-	public Packet createApplicationUserApplicationServerResponse(String messageId, String applicationHost) {
-		JSONObject payload = new JSONObject();
-
-		payload.put("messageId", messageId);
-		payload.put("applicationHost", applicationHost);
-
-		return this.createPacket(Status.OK, OperationType.RESPONSE, PayloadType.USER_APPLICATION_SERVER, payload);
 	}
 
 	public Packet createGenericClientResponse(Status status, PayloadType payloadType, JSONObject payload, String message) {

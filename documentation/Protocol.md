@@ -466,6 +466,24 @@ sequenceDiagram
   Client B ->> Application: Response
 ```
 
+Cenário em que os dois usuários estão conectados em servidores diferentes.
+
+```mermaid
+sequenceDiagram
+    Client A ->> Application A: Message
+    Application A ->> Client A: Response
+    Application A ->> Gateway: Message
+    Gateway ->> Application A: Response
+    Gateway ->> Application B: Message
+    Application B ->> Gateway: Response
+    Application B ->> Client B: Message
+    Client B ->> Application B: Response
+```
+
+---
+
+### Envio de mensagem (ideia antiga)
+
 Cenário em que os dois usuários estão conectados em servidores diferentes, mas os servidores estão conectados entre si.
 
 ```mermaid

@@ -46,7 +46,7 @@ public class ApplicationPacketProcessor {
 			switch (packet.getPayloadType()) {
 			case CONNECTION -> this.receiveApplicationConnectionRequest(packet);
 			case DISCONNECTION -> this.receiveApplicationClientDisconnectionRequest(packet);
-			case USER_APPLICATION_SERVER -> this.receiveApplicationUserApplicationServerRequest(packet);
+			case MESSAGE -> this.receiveApplicationMessageForwardingRequest(packet);
 			default -> logger.warn("Invalid payload type");
 			}
 		} else if (packet.getOperationType() == OperationType.RESPONSE && packet.getPayloadType() == PayloadType.ROUTING) {
@@ -129,23 +129,25 @@ public class ApplicationPacketProcessor {
 		this.serverHandler.sendPacketById(applicationId, this.packetFactory.createGatewayClientDisconnectionResponse(userId));
 	}
 
-	public void receiveApplicationUserApplicationServerRequest(Packet packet) {
+	public void receiveApplicationMessageForwardingRequest(Packet packet) {
 		// TODO: Autenticar o servidor de aplicação
 
 		String applicationId = packet.getId();
 		JSONObject payload = packet.getPayload();
-		Long targetUserId = payload.getLong("targetUserId");
-		String messageId = payload.getString("messageId");
 
-		String targetApplicationHost = this.applicationContextMap.getExternalHost(this.userIdApplicationIdMap.get(targetUserId));
+		Long targetUserId = payload.getLong("targetUserId");
+
+		String targetApplicationId = this.userIdApplicationIdMap.get(targetUserId);
 
 		Packet responsePacket;
-		if (!isNull(targetApplicationHost)) {
-			responsePacket = this.packetFactory.createApplicationUserApplicationServerResponse(messageId, targetApplicationHost);
+		if (!isNull(targetApplicationId)) {
+			responsePacket = this.packetFactory.createOkResponse(PayloadType.MESSAGE, "Mensagem encaminhada");
+			this.serverHandler.sendPacketById(targetApplicationId, this.packetFactory.createMessageForwarding(payload));
 		} else {
-			responsePacket = this.packetFactory.createErrorResponse(PayloadType.USER_APPLICATION_SERVER,
-					"Usuário não está conectado a nenhum servidor de aplicação.");
+			responsePacket = this.packetFactory.createErrorResponse(PayloadType.MESSAGE,
+					"Usuário não está conectado a nenhum servidor de aplicação");
 		}
+
 		this.serverHandler.sendPacketById(applicationId, responsePacket);
 	}
 

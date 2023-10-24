@@ -29,7 +29,6 @@ public class ManagerThread extends Thread {
 	private final PacketFactory packetFactory;
 	private final GatewayPacketProcessor gatewayPacketProcessor;
 	private final ClientPacketProcessor clientPacketProcessor;
-	private final ApplicationPacketProcessor applicationPacketProcessor;
 	private static final Logger logger = LoggerFactory.getLogger(ManagerThread.class);
 
 	public ManagerThread(ExternalHandler serverHandler, InternalHandler clientHandler) {
@@ -47,12 +46,10 @@ public class ManagerThread extends Thread {
 		HashMap<Long, JSONObject> tempMessageMap = new HashMap<>();
 		SharedString gatewayId = new SharedString();
 
-		this.gatewayPacketProcessor = new GatewayPacketProcessor(this.externalHandler, this.internalHandler, this.packetFactory,
+		this.gatewayPacketProcessor = new GatewayPacketProcessor(this, this.externalHandler, this.internalHandler, this.packetFactory,
 				userContextMap, externalUserIdApplicationIdMap, tempMessageMap, gatewayId);
 		this.clientPacketProcessor = new ClientPacketProcessor(this.externalHandler, this.internalHandler, this.packetFactory,
 				userContextMap, externalUserIdApplicationIdMap, tempMessageMap, gatewayId);
-		this.applicationPacketProcessor = new ApplicationPacketProcessor(this.externalHandler, this.packetFactory,
-				userContextMap);
 	}
 
 	@Override
@@ -84,7 +81,7 @@ public class ManagerThread extends Thread {
 		}
 	}
 
-	private boolean connect(String host, int port) {
+	public boolean connect(String host, int port) {
 		int tries = 0;
 		int maxRetries = 5;
 		int waitTime = 1000;
@@ -115,10 +112,6 @@ public class ManagerThread extends Thread {
 		}
 
 		return true;
-	}
-
-	public void processApplicationPackets(Packet packet) {
-		this.applicationPacketProcessor.process(packet);
 	}
 
 	public void processClientPackets(Packet packet) {
