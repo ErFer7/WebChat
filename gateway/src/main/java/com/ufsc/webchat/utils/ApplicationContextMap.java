@@ -1,5 +1,7 @@
 package com.ufsc.webchat.utils;
 
+import static java.util.Objects.isNull;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -18,8 +20,8 @@ public class ApplicationContextMap {
 		this.applications.put(id, new Triplet<>(token, externalHost, 0));
 	}
 
-	public void remove(String id) {
-		this.applications.remove(id);
+	public boolean remove(String id) {
+		return !isNull(this.applications.remove(id));
 	}
 
 	public void incrementUserCount(String host) {

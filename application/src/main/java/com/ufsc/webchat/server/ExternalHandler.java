@@ -22,6 +22,14 @@ public class ExternalHandler extends Handler {
 		((ManagerThread) this.managerThread).sendClientHandshakeInfo(session);
 	}
 
+	@Override protected void sessionClosed(IWebSocketSession session) {
+		if (this.sessions.getIdByName(session.getName()) != null) {
+			((ManagerThread) this.managerThread).sendGatewayClientDisconnectionRequest(this.sessions.getIdByName(session.getName()));
+		}
+
+		super.sessionClosed(session);
+	}
+
 	@Override
 	public ServerSocketChannel getInternalChannel() {
 		return (ServerSocketChannel) this.internalChannel;

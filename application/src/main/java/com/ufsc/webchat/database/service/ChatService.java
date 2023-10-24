@@ -62,8 +62,6 @@ public class ChatService {
 	}
 
 	public ServiceResponse saveChatGroup(JSONObject payload) {
-		// TODO: Avaliar possíveis exceções se não houver os campos no payload.
-		//  Pode ser uma ideia criar um payloadValidator que avalia esses campos antes de passar pro service.
 		String groupName = payload.getString("groupName");
 		List<String> usernames = payload.getJSONArray("membersUsernames").toList()
 				.stream()

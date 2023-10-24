@@ -2,7 +2,6 @@ package com.ufsc.webchat.server;
 
 import static java.util.Objects.isNull;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -15,6 +14,7 @@ import com.ufsc.webchat.database.service.ChatService;
 import com.ufsc.webchat.database.service.MessageService;
 import com.ufsc.webchat.database.service.UserService;
 import com.ufsc.webchat.model.ServiceResponse;
+import com.ufsc.webchat.protocol.JSONValidator;
 import com.ufsc.webchat.protocol.Packet;
 import com.ufsc.webchat.protocol.PacketFactory;
 import com.ufsc.webchat.protocol.enums.PayloadType;
@@ -33,22 +33,16 @@ public class ClientPacketProcessor {
 	private final PacketFactory packetFactory;
 	private final SharedString gatewayId;
 	private final UserContextMap userContextMap;
-	private final HashMap<Long, String> externalUserIdApplicationIdMap;
-	private final HashMap<Long, JSONObject> tempMessageMap;
 
 	public ClientPacketProcessor(ExternalHandler externalHandler,
 			InternalHandler internalHandler,
 			PacketFactory packetFactory,
 			UserContextMap userContextMap,
-			HashMap<Long, String> externalUserIdApplicationIdMap,
-			HashMap<Long, JSONObject> tempMessageMap,
 			SharedString gatewayId) {
 		this.externalHandler = externalHandler;
 		this.internalHandler = internalHandler;
 		this.packetFactory = packetFactory;
 		this.userContextMap = userContextMap;
-		this.externalUserIdApplicationIdMap = externalUserIdApplicationIdMap;
-		this.tempMessageMap = tempMessageMap;
 		this.gatewayId = gatewayId;
 	}
 
@@ -62,9 +56,14 @@ public class ClientPacketProcessor {
 		case GET_USER_CHAT_ID -> this.receiveClientGetUserChatId(packet);
 		case MESSAGE -> this.receiveClientMessage(packet);
 		case MESSAGE_LISTING -> this.receiveClientMessageListing(packet);
-		case DISCONNECTION -> this.receiveClientDisconnectionRequest(packet);
 		default -> logger.warn("Unexpected packet type: {}", packet.getPayloadType());
 		}
+	}
+
+	public void receiveClientDisconnection(String clientId) {
+		Long userId = this.userContextMap.getUserIdByClientId(clientId);
+		this.userContextMap.remove(userId);
+		this.internalHandler.sendPacketById(this.gatewayId.getString(), this.packetFactory.createApplicationClientDisconnectingRequest(userId));
 	}
 
 	private boolean authenticateClient(Packet packet, PayloadType payloadType) {
@@ -81,12 +80,20 @@ public class ClientPacketProcessor {
 	}
 
 	private void receiveClientConnectionRequest(Packet packet) {
+		JSONObject payload = packet.getPayload();
+
+		var missingFields = JSONValidator.validate(payload, List.of("userId", "host"));
+		if (!missingFields.isEmpty()) {
+			logger.error("Invalid payload");
+			return;
+		}
+
 		if (!this.authenticateClient(packet, PayloadType.CONNECTION)) {
 			return;
 		}
+
 		String clientId = packet.getId();
 
-		JSONObject payload = packet.getPayload();
 		Long userId = payload.getLong("userId");
 		String host = payload.getString("host");
 
@@ -94,15 +101,6 @@ public class ClientPacketProcessor {
 		this.userContextMap.setUserClientId(userId, clientId);
 
 		this.externalHandler.sendPacketById(clientId, this.packetFactory.createClientConnectionResponse(Status.OK));
-	}
-
-	private void receiveClientDisconnectionRequest(Packet packet) {
-		if (!this.authenticateClient(packet, PayloadType.DISCONNECTION)) {
-			return;
-		}
-		String userId = packet.getPayload().getString("userId");
-
-		this.internalHandler.sendPacketById(this.gatewayId.getString(), this.packetFactory.createApplicationClientDisconnectingRequest(userId));
 	}
 
 	private void receiveClientUserListingRequest(Packet packet) {
@@ -116,6 +114,15 @@ public class ClientPacketProcessor {
 	}
 
 	private void receiveClientGroupChatCreationRequest(Packet packet) {
+		JSONObject payload = packet.getPayload();
+
+		var missingFields = JSONValidator.validate(payload, List.of("groupName", "membersUsernames", "userId"));
+		if (!missingFields.isEmpty()) {
+			this.externalHandler.sendPacketById(packet.getId(), this.packetFactory.createErrorResponse(PayloadType.GROUP_CHAT_CREATION, "Payload inválido"));
+			logger.error("Invalid payload");
+			return;
+		}
+
 		if (!this.authenticateClient(packet, PayloadType.GROUP_CHAT_CREATION)) {
 			return;
 		}
@@ -128,6 +135,15 @@ public class ClientPacketProcessor {
 	}
 
 	private void receiveClientChatListingRequest(Packet packet) {
+		JSONObject payload = packet.getPayload();
+
+		var missingFields = JSONValidator.validate(payload, List.of("userId"));
+		if (!missingFields.isEmpty()) {
+			this.externalHandler.sendPacketById(packet.getId(), this.packetFactory.createErrorResponse(PayloadType.CHAT_LISTING, "Payload inválido"));
+			logger.error("Invalid payload");
+			return;
+		}
+
 		if (!this.authenticateClient(packet, PayloadType.CHAT_LISTING)) {
 			return;
 		}
@@ -138,6 +154,15 @@ public class ClientPacketProcessor {
 	}
 
 	private void receiveClientGroupChatAdditionRequest(Packet packet) {
+		JSONObject payload = packet.getPayload();
+
+		var missingFields = JSONValidator.validate(payload, List.of("userId", "chatId", "addedUserName"));
+		if (!missingFields.isEmpty()) {
+			this.externalHandler.sendPacketById(packet.getId(), this.packetFactory.createErrorResponse(PayloadType.GROUP_CHAT_ADDITION, "Payload inválido"));
+			logger.error("Invalid payload");
+			return;
+		}
+
 		if (!this.authenticateClient(packet, PayloadType.GROUP_CHAT_ADDITION)) {
 			return;
 		}
@@ -146,11 +171,20 @@ public class ClientPacketProcessor {
 	}
 
 	private void receiveClientMessage(Packet packet) {
+		JSONObject payload = packet.getPayload();
+
+		var missingFields = JSONValidator.validate(payload, List.of("message", "chatId", "userId"));
+		if (!missingFields.isEmpty()) {
+			this.externalHandler.sendPacketById(packet.getId(), this.packetFactory.createErrorResponse(PayloadType.GROUP_CHAT_ADDITION, "Payload inválido"));
+			logger.error("Invalid payload");
+			return;
+		}
+
 		if (!this.authenticateClient(packet, PayloadType.MESSAGE)) {
 			return;
 		}
+
 		String clientId = packet.getId();
-		JSONObject payload = packet.getPayload();  // TODO: Validar
 		Long senderId = payload.getLong("userId");
 
 		ServiceResponse messageServiceResponse = this.messageService.saveMessage(payload);
@@ -163,14 +197,24 @@ public class ClientPacketProcessor {
 			this.externalHandler.sendPacketById(clientId, this.packetFactory.createErrorResponse(PayloadType.MESSAGE, userServiceResponse.message()));
 			return;
 		}
-		//TODO: Avaliar unchecked cast
+
 		this.broadCastClientMessage((List<Long>) userServiceResponse.payload(), senderId, payload);
 	}
 
 	private void receiveClientMessageListing(Packet packet) {
+		JSONObject payload = packet.getPayload();
+
+		var missingFields = JSONValidator.validate(payload, List.of("userId", "chatId"));
+		if (!missingFields.isEmpty()) {
+			this.externalHandler.sendPacketById(packet.getId(), this.packetFactory.createErrorResponse(PayloadType.MESSAGE_LISTING, "Payload inválido"));
+			logger.error("Invalid payload");
+			return;
+		}
+
 		if (!this.authenticateClient(packet, PayloadType.MESSAGE_LISTING)) {
 			return;
 		}
+
 		var serviceResponse = this.messageService.loadMessages(packet.getPayload());
 		var messagesDto = serviceResponse.payload();
 		var responsePayload = isNull(messagesDto) ? null : new JSONObject(Map.of("messages", messagesDto));
@@ -179,9 +223,19 @@ public class ClientPacketProcessor {
 	}
 
 	private void receiveClientGetUserChatId(Packet packet) {
-		if (!this.authenticateClient(packet, PayloadType.MESSAGE)) {
+		JSONObject payload = packet.getPayload();
+
+		var missingFields = JSONValidator.validate(payload, List.of("userId", "targetUsername"));
+		if (!missingFields.isEmpty()) {
+			this.externalHandler.sendPacketById(packet.getId(), this.packetFactory.createErrorResponse(PayloadType.GET_USER_CHAT_ID, "Payload inválido"));
+			logger.error("Invalid payload");
 			return;
 		}
+
+		if (!this.authenticateClient(packet, PayloadType.GET_USER_CHAT_ID)) {
+			return;
+		}
+
 		ServiceResponse serviceResponse = this.chatService.loadOrSaveChatIdByUsers(packet.getPayload());
 		var responsePayload = new JSONObject(Map.of("chatId", serviceResponse.payload()));
 		var responsePacket = this.packetFactory.createGenericClientResponse(serviceResponse.status(), PayloadType.GET_USER_CHAT_ID, responsePayload, serviceResponse.message());

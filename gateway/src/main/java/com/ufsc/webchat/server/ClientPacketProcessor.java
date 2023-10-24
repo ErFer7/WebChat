@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.ufsc.webchat.database.service.UserService;
 import com.ufsc.webchat.model.ServiceResponse;
@@ -23,6 +25,7 @@ public class ClientPacketProcessor {
 	private final PacketFactory packetFactory;
 	private final ApplicationContextMap applicationContextMap;
 	private final HashMap<Long, String> userIdClientIdMap;
+	private final Logger logger = LoggerFactory.getLogger(ClientPacketProcessor.class);
 
 	public ClientPacketProcessor(ServerHandler serverHandler,
 			PacketFactory packetFactory,
@@ -44,17 +47,21 @@ public class ClientPacketProcessor {
 		}
 	}
 
+	public void removeDisconnectedUsers(String applicationId) {
+		for (var entry : this.userIdClientIdMap.entrySet()) {
+			if (entry.getValue().equals(applicationId)) {
+				this.userIdClientIdMap.remove(entry.getKey());
+			}
+		}
+	}
+
 	private void receiveClientRoutingRequest(Packet packet) {
 		String clientId = packet.getId();
 		JSONObject payload = packet.getPayload();
 
-		if (isNull(payload)) {
-			return;
-		}
 		var missingFields = JSONValidator.validate(payload, List.of("host", "username", "password"));
 		if (!missingFields.isEmpty()) {
-			//TODO: Avaliar possibilidade de retornar ao cliente que o pacote está inválido
-			// Se eu tiver host/id, posso enviar um pacote de erro para o cliente sobre username/password
+			logger.error("Invalid payload");
 			return;
 		}
 
@@ -74,15 +81,12 @@ public class ClientPacketProcessor {
 	}
 
 	private void receiveClientRegisterRequest(Packet packet) {
-		String clientId = packet.getId();
 		JSONObject payload = packet.getPayload();
-
-		if (isNull(payload)) {
-			return;
-		}
+		String clientId = packet.getId();
 
 		var missingFields = JSONValidator.validate(payload, List.of("host", "username", "password"));
 		if (!missingFields.isEmpty()) {
+			logger.error("Invalid payload");
 			return;
 		}
 

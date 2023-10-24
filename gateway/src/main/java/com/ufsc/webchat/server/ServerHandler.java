@@ -51,7 +51,11 @@ public class ServerHandler extends Handler {
 
 	@Override
 	protected void sessionClosed(IWebSocketSession session) {
-		this.applicationContextMap.remove(this.sessions.getIdByName(session.getName()));
+		String sessionId = this.sessions.getIdByName(session.getName());
+		if(this.applicationContextMap.remove(sessionId)) {
+			this.clientPacketProcessor.removeDisconnectedUsers(sessionId);
+		}
+
 		super.sessionClosed(session);
 	}
 

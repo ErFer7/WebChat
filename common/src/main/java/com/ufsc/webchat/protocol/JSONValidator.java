@@ -9,15 +9,18 @@ public class JSONValidator {
 
 	public static List<String> validate(JSONObject jsonObject, List<String> requiredFields) {
 		List<String> missingFields = new ArrayList<>();
+
+		if (jsonObject == null) {
+			missingFields.add("payload");
+			return missingFields;
+		}
+
 		for (String field : requiredFields) {
 			if (!jsonObject.has(field)) {
 				missingFields.add(field);
 			}
 		}
+
 		return missingFields;
 	}
-
-	// TODO: Validate de jsonString? Antes de criar a packet?
-	// TODO: Avaliar possibilidade de verificar tipos dos campos também.
-
 }

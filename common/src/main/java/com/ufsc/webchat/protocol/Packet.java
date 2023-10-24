@@ -32,24 +32,19 @@ public class Packet {
 		this.payload = payload;
 	}
 
-	public Packet(String jsonString) {
+	public Packet(String jsonString) throws Exception {
 		JSONObject jsonPacket = new JSONObject(jsonString);
 
-		try {
-			this.id = jsonPacket.getString("id");
-			this.hostType = HostType.valueOf(jsonPacket.getString("hostType"));
-			this.token = FieldParser.nullableFieldToString(jsonPacket, "token");
+		this.id = jsonPacket.getString("id");
+		this.hostType = HostType.valueOf(jsonPacket.getString("hostType"));
+		this.token = FieldParser.nullableFieldToString(jsonPacket, "token");
 
-			String status = FieldParser.nullableFieldToString(jsonPacket, "status");
-			this.status = status != null ? Status.valueOf(status) : null;
+		String status = FieldParser.nullableFieldToString(jsonPacket, "status");
+		this.status = status != null ? Status.valueOf(status) : null;
 
-			this.operationType = OperationType.valueOf(jsonPacket.getString("operationType"));
-			this.payloadType = PayloadType.valueOf(jsonPacket.getString("payloadType"));
-			this.payload = FieldParser.nullableFieldToJSONObject(jsonPacket, "payload");
-		} catch (Exception exception) {
-			logger.error("Error parsing packet: {}", exception.getMessage());
-			// TODO: Se for possível (ter possibilidade de enviar mensagem de volta para quem enviou o pacote), enviar mensagem de erro
-		}
+		this.operationType = OperationType.valueOf(jsonPacket.getString("operationType"));
+		this.payloadType = PayloadType.valueOf(jsonPacket.getString("payloadType"));
+		this.payload = FieldParser.nullableFieldToJSONObject(jsonPacket, "payload");
 	}
 
 	@Override public String toString() {
