@@ -5,6 +5,7 @@ import static java.util.Objects.isNull;
 import java.util.HashMap;
 import java.util.List;
 
+import com.ufsc.webchat.protocol.enums.Status;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,6 +94,18 @@ public class ClientPacketProcessor {
 		String host = payload.getString("host");
 		this.serverHandler.associateIdToHost(host, clientId);
 		ServiceResponse serviceAnswer = this.userService.register(packet.getPayload());
+		if (serviceAnswer.status().equals(Status.ERROR)) {
+			Retry.launch(packet, this);
+			return;
+		}
+		this.serverHandler.sendPacketById(clientId, this.packetFactory.createClientRegisterUserResponse(serviceAnswer.status(), serviceAnswer.message()));
+	}
+
+	public void tryAgainClientRegisterRequest(Packet packet) {
+		String clientId = packet.getId();
+		JSONObject payload = packet.getPayload();
+
+		ServiceResponse serviceAnswer = this.userService.register(payload);
 		this.serverHandler.sendPacketById(clientId, this.packetFactory.createClientRegisterUserResponse(serviceAnswer.status(), serviceAnswer.message()));
 	}
 
