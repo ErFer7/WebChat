@@ -46,7 +46,7 @@ public class ApplicationPacketProcessor {
 			switch (packet.getPayloadType()) {
 			case CONNECTION -> this.receiveApplicationConnectionRequest(packet);
 			case DISCONNECTION -> this.receiveApplicationClientDisconnectionRequest(packet);
-			case MESSAGE -> this.receiveApplicationMessageForwardingRequest(packet);
+			case MESSAGE_FORWARDING -> this.receiveApplicationMessageForwardingRequest(packet);
 			default -> logger.warn("Invalid payload type");
 			}
 		} else if (packet.getOperationType() == OperationType.RESPONSE && packet.getPayloadType() == PayloadType.ROUTING) {

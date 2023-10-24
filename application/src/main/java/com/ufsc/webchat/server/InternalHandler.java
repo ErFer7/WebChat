@@ -44,8 +44,6 @@ public class InternalHandler extends Handler {
 	public void readPacket(Packet packet) {
 		if (packet.getHostType() == HostType.GATEWAY) {
 			((ManagerThread) this.managerThread).processGatewayPackets(packet);
-		} else if (packet.getHostType() == HostType.APPLICATION) {
-			((ManagerThread) this.managerThread).processApplicationPackets(packet);
 		}
 	}
 

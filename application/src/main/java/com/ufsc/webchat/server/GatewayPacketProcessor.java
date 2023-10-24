@@ -58,7 +58,8 @@ public class GatewayPacketProcessor {
 		case HOST -> this.receiveGatewayHostInfo(packet);
 		case CONNECTION -> this.receiveGatewayConnectionResponse(packet);
 		case ROUTING -> this.receiveGatewayClientRoutingRequest(packet);
-		case MESSAGE -> this.receiveApplicationMessageForwarding(packet);
+		case MESSAGE_FORWARDING -> this.receiveGatewayMessageForwarding(packet);
+		case MESSAGE -> this.receiveGatewayMessageResponse(packet);
 		case DISCONNECTION -> this.receiveGatewayClientDisconnectionResponse(packet);
 		default -> logger.warn("Unexpected packet type: {}", packet.getPayloadType());
 		}
@@ -104,8 +105,18 @@ public class GatewayPacketProcessor {
 		this.userContextMap.remove(userId);
 	}
 
-	private void receiveApplicationMessageForwarding(Packet packet) {
-		Long targetUserId = packet.getPayload().getLong("targetId");
+	private void receiveGatewayMessageResponse(Packet packet) {
+		String message = packet.getPayload().getString("message");
+
+		if (packet.getStatus() == Status.OK) {
+			logger.info(message);
+		} else {
+			logger.error(message);
+		}
+	}
+
+	private void receiveGatewayMessageForwarding(Packet packet) {
+		Long targetUserId = packet.getPayload().getLong("targetUserId");
 
 		String targetUserClientId = this.userContextMap.getClientId(targetUserId);
 

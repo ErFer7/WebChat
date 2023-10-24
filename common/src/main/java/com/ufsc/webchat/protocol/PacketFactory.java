@@ -139,7 +139,7 @@ public class PacketFactory {
 	}
 	
 	public Packet createMessageForwarding(JSONObject payload) {
-		return this.createPacket(null, OperationType.REQUEST, PayloadType.MESSAGE, payload);
+		return this.createPacket(null, OperationType.REQUEST, PayloadType.MESSAGE_FORWARDING, payload);
 	}
 
 	public Packet createGenericClientResponse(Status status, PayloadType payloadType, JSONObject payload, String message) {
