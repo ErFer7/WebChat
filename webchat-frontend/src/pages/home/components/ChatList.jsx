@@ -2,12 +2,10 @@ import GroupIcon from '@mui/icons-material/Group'
 import PersonIcon from '@mui/icons-material/Person'
 import { Box, Divider, List, ListItemButton, ListItemIcon, ListItemText } from '@mui/material'
 import PropTypes from 'prop-types'
-import { useState } from 'react'
-export function ChatList({ chats }) {
-  const [selectedIndex, setSelectedIndex] = useState(1)
-
+export function ChatList({ chats, selectedChatId, setSelectedChatId }) {
   const handleListItemClick = (event, index) => {
-    setSelectedIndex(index)
+    setSelectedChatId(index)
+    console.log(index)
   }
 
   return (
@@ -17,7 +15,7 @@ export function ChatList({ chats }) {
           return (
             <div key={chat.id}>
               <ListItemButton
-                selected={selectedIndex === chat.id}
+                selected={selectedChatId === chat.id}
                 onClick={(event) => handleListItemClick(event, chat.id)}
               >
                 <ListItemIcon>{chat.groupChat ? <GroupIcon /> : <PersonIcon />}</ListItemIcon>
@@ -34,6 +32,8 @@ export function ChatList({ chats }) {
 
 ChatList.propTypes = {
   chats: PropTypes.arrayOf(PropTypes.object),
+  setSelectedChatId: PropTypes.func,
+  selectedChatId: PropTypes.number,
 }
 
 export default ChatList

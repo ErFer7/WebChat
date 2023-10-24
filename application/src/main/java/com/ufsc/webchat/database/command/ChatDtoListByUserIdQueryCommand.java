@@ -8,6 +8,7 @@ import java.util.List;
 
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.Expressions;
+import com.querydsl.jpa.JPAExpressions;
 import com.ufsc.webchat.database.EntityManagerProvider;
 import com.ufsc.webchat.database.JPAQueryFactory;
 import com.ufsc.webchat.database.model.ChatDto;
@@ -20,7 +21,13 @@ public class ChatDtoListByUserIdQueryCommand {
 			var nameExpression = Expressions.cases()
 					.when(chat.isGroupChat.eq(Boolean.TRUE))
 					.then(chat.name)
-					.otherwise(user.name);
+					.otherwise(
+							JPAExpressions.select(user.name)
+									.from(chatMember)
+									.join(user).on(user.id.eq(chatMember.userId))
+									.where(chatMember.chatId.eq(chat.id).and(chatMember.userId.ne(userId)))
+									.limit(1)
+					).coalesce(user.name);
 
 			return queryFactory.createQuery()
 					.select(Projections.constructor(ChatDto.class, chat.id, nameExpression, chat.isGroupChat))

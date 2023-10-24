@@ -3,11 +3,12 @@ import { Box, Divider, List, ListItemButton, ListItemIcon, ListItemText } from '
 import PropTypes from 'prop-types'
 import { useState } from 'react'
 
-export function UserList({ users }) {
+export function UserList({ users, handleClickUser }) {
   const [selectedIndex, setSelectedIndex] = useState(1)
 
-  const handleListItemClick = (event, index) => {
+  const handleListItemClick = (event, index, username) => {
     setSelectedIndex(index)
+    handleClickUser(username)
   }
 
   return (
@@ -18,7 +19,7 @@ export function UserList({ users }) {
             <div key={user.id}>
               <ListItemButton
                 selected={selectedIndex === user.id}
-                onClick={(event) => handleListItemClick(event, user.id)}
+                onClick={(event) => handleListItemClick(event, user.id, user.username)}
               >
                 <ListItemIcon>
                   <AccountCircleIcon />
@@ -36,4 +37,5 @@ export function UserList({ users }) {
 
 UserList.propTypes = {
   users: PropTypes.arrayOf(PropTypes.object),
+  handleClickUser: PropTypes.func,
 }

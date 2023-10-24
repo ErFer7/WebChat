@@ -51,7 +51,7 @@ public class MessageService {
 		Long chatId = payload.getLong("chatId");
 		Long userId = payload.getLong("userId");
 
-		ValidationMessage validationMessage = this.authorizationValidator.validateUserInChat(chatId, userId);
+		ValidationMessage validationMessage = this.authorizationValidator.validateUserInChat(userId, chatId);
 		if (!validationMessage.isValid()) {
 			return new ServiceResponse(Status.ERROR, validationMessage.message(), null);
 		}

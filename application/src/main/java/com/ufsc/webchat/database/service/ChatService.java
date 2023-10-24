@@ -4,6 +4,7 @@ import static java.util.Objects.isNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.json.JSONObject;
@@ -122,7 +123,9 @@ public class ChatService {
 			transaction.begin();
 			Long newChatId = this.chatSaveCommand.execute(null, false, em);
 			this.chatMemberSaveCommand.execute(newChatId, userId1, em);
-			this.chatMemberSaveCommand.execute(newChatId, userId2, em);
+			if (!Objects.equals(userId1, userId2)) {
+				this.chatMemberSaveCommand.execute(newChatId, userId2, em);
+			}
 			transaction.commit();
 			return new ServiceResponse(Status.CREATED, null, newChatId);
 		} catch (Exception e) {
