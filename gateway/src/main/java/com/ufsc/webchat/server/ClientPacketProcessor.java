@@ -5,6 +5,7 @@ import static java.util.Objects.isNull;
 import java.util.HashMap;
 import java.util.List;
 
+import com.ufsc.webchat.protocol.enums.Status;
 import org.json.JSONObject;
 
 import com.ufsc.webchat.database.service.UserService;
@@ -74,6 +75,29 @@ public class ClientPacketProcessor {
 	}
 
 	private void receiveClientRegisterRequest(Packet packet) {
+		String clientId = packet.getId();
+		JSONObject payload = packet.getPayload();
+
+		if (isNull(payload)) {
+			return;
+		}
+
+		var missingFields = JSONValidator.validate(payload, List.of("host", "username", "password"));
+		if (!missingFields.isEmpty()) {
+			return;
+		}
+
+		String host = payload.getString("host");
+		this.serverHandler.associateIdToHost(host, clientId);
+		ServiceResponse serviceAnswer = this.userService.register(packet.getPayload());
+		if (serviceAnswer.status().equals(Status.ERROR)) {
+			Retry.launch(packet, this);
+			return;
+		}
+		this.serverHandler.sendPacketById(clientId, this.packetFactory.createClientRegisterUserResponse(serviceAnswer.status(), serviceAnswer.message()));
+	}
+
+	public void tryAgainClientRegisterRequest(Packet packet) {
 		String clientId = packet.getId();
 		JSONObject payload = packet.getPayload();
 
