@@ -43,12 +43,12 @@
   - **ROUTING**: Roteamento.
   - **USER_CREATION**: Criação do usuário.
   - **USER_LISTING**: Listagem de usuários.
-  - **USER_APPLICATION_SERVER**: Host do servidor de aplicação que está conectado com o usuário.
   - **DISCONNECTION**: Fechamento de conexão.
   - **GROUP_CHAT_CREATION**: Criação de conversa em grupo.
   - **CHAT_LISTING**: Listagem de conversas.
   - **GROUP_CHAT_ADDITION**: Adição de usuário na conversa.
   - **MESSAGE**: Mensagem.
+  - **MESSAGE_FORWARDING**: Mensagem redirecionada.
   - **MESSAGE_LISTING**: Listagem de mensagens.
 - **payload**: Dados da mensagem, pode ser nulo.
 
@@ -148,7 +148,7 @@ sequenceDiagram
         "hostType": "GATEWAY",
         "token": null,
         "status": "[status]",
-        "operationType": "INFO",s
+        "operationType": "INFO",
         "payloadType": "HOST",
         "payload": {
             "host": "[host]"
@@ -284,28 +284,12 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-  Client ->> Application: Closing request
+  Client -->> Application: Websocket disconnection
   Application ->> Gateway: Closing request
   Gateway ->> Application: Closing response
-  Application ->> Client: Closing response
-  Client -->> Application: Websocket disconnection
 ```
 
-1. O cliente envia uma requisição de fechamento.
-
-```json
-{
-    "id": "[id]",
-    "hostType": "CLIENT",
-    "token": "[token]",
-    "status": null,
-    "operationType": "REQUEST",
-    "payloadType": "DISCONNECTION",
-    "payload": {
-      "userId": "[id]"
-    }
-}
-```
+1. O cliente se desconecta.
 
 2. O servidor envia uma requisição de fechamento para o gateway.
 
@@ -336,20 +320,6 @@ sequenceDiagram
     "payload": {
       "userId": "[id]"
     }
-}
-```
-
-4. O servidor responde para o cliente.
-
-```json
-{
-    "id": "[id]",
-    "hostType": "APPLICATION",
-    "token": null,
-    "status": "[status]",
-    "operationType": "RESPONSE",
-    "payloadType": "DISCONNECTION",
-    "payload": null
 }
 ```
 

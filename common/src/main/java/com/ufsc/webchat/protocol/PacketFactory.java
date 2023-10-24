@@ -112,7 +112,7 @@ public class PacketFactory {
 		return this.createPacket(status, OperationType.RESPONSE, PayloadType.USER_CREATION, payload);
 	}
 
-	public Packet createApplicationClientDisconnectingRequest(String userId) {
+	public Packet createApplicationClientDisconnectingRequest(Long userId) {
 		JSONObject payload = new JSONObject();
 		payload.put("userId", userId);
 		return this.createPacket(null, OperationType.REQUEST, PayloadType.DISCONNECTION, payload);

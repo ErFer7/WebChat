@@ -16,7 +16,7 @@ import com.ufsc.webchat.protocol.utils.SessionContextMap;
 public abstract class Handler extends AbstractWebSocketHandler {
 
 	protected AbstractSelectableChannel internalChannel;
-	protected Thread managerThread;
+	protected Manager managerThread;
 	protected final SessionContextMap sessions;
 	private static final Logger logger = LoggerFactory.getLogger(Handler.class);
 
@@ -24,7 +24,7 @@ public abstract class Handler extends AbstractWebSocketHandler {
 		this.sessions = new SessionContextMap();
 	}
 
-	public void setManagerThread(Thread managerThread) {
+	public void setManagerThread(Manager managerThread) {
 		this.managerThread = managerThread;
 	}
 
@@ -33,8 +33,17 @@ public abstract class Handler extends AbstractWebSocketHandler {
 		if (frame instanceof TextFrame) {
 			logger.info("Received frame: {}", ((TextFrame) frame).getText());
 
-			Packet packet = new Packet(((TextFrame) frame).getText());
-			this.readPacket(packet);
+			Packet packet = null;
+
+			try {
+				packet = new Packet(((TextFrame) frame).getText());
+			} catch (Exception e) {
+				logger.error("Error while parsing packet: {}", ((TextFrame) frame).getText());
+			}
+
+			if (packet != null) {
+				this.readPacket(packet);
+			}
 		}
 	}
 
@@ -43,15 +52,6 @@ public abstract class Handler extends AbstractWebSocketHandler {
 	public void sendPacketById(String id, Packet packet) {
 		try {
 			IStreamSession session = this.sessions.getById(id);
-			session.writenf(new TextFrame(packet.toString()));
-		} catch (Exception e) {
-			logger.error("Error while sending packet: {}", packet);
-		}
-	}
-
-	public void sendPacketByHost(String host, Packet packet) {
-		try {
-			IStreamSession session = this.sessions.getByHost(host);
 			session.writenf(new TextFrame(packet.toString()));
 		} catch (Exception e) {
 			logger.error("Error while sending packet: {}", packet);

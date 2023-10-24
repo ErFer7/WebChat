@@ -2,12 +2,13 @@ package com.ufsc.webchat.server;
 
 import static java.util.Objects.isNull;
 
-import java.util.HashMap;
+import java.util.List;
 
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.ufsc.webchat.protocol.JSONValidator;
 import com.ufsc.webchat.protocol.Packet;
 import com.ufsc.webchat.protocol.PacketFactory;
 import com.ufsc.webchat.protocol.enums.PayloadType;
@@ -27,27 +28,18 @@ public class GatewayPacketProcessor {
 	private final String gatewayIdentifier;
 	private final String gatewayPassword;
 	private final UserContextMap userContextMap;
-	private final HashMap<Long, String> externalUserIdApplicationIdMap;
-	private final HashMap<Long, JSONObject> tempMessageMap;
-	private final ManagerThread managerThread;
 
-	public GatewayPacketProcessor(ManagerThread managerThread,
-			ExternalHandler externalHandler,
+	public GatewayPacketProcessor(ExternalHandler externalHandler,
 			InternalHandler internalHandler,
 			PacketFactory packetFactory,
 			UserContextMap userContextMap,
-			HashMap<Long, String> externalUserIdApplicationIdMap,
-			HashMap<Long, JSONObject> tempMessageMap,
 			SharedString gatewayId) {
-		this.managerThread = managerThread;
 		this.externalHandler = externalHandler;
 		this.internalHandler = internalHandler;
 		this.packetFactory = packetFactory;
 		this.gatewayHost = this.internalHandler.getGatewayHost();
 		this.gatewayPort = this.internalHandler.getGatewayPort();
 		this.userContextMap = userContextMap;
-		this.externalUserIdApplicationIdMap = externalUserIdApplicationIdMap;
-		this.tempMessageMap = tempMessageMap;
 		this.gatewayIdentifier = System.getProperty("gatewayIdentifier");
 		this.gatewayPassword = System.getProperty("gatewayPassword");
 		this.gatewayId = gatewayId;
@@ -66,7 +58,16 @@ public class GatewayPacketProcessor {
 	}
 
 	public void receiveGatewayHostInfo(Packet packet) {
-		String host = packet.getPayload().getString("host");
+		JSONObject payload = packet.getPayload();
+
+		var missingFields = JSONValidator.validate(payload, List.of("host"));
+		if (!missingFields.isEmpty()) {
+			logger.error("Invalid payload");
+			return;
+		}
+
+		String host = payload.getString("host");
+
 		this.gatewayId.setString(packet.getId());
 		this.internalHandler.associateIdToHost('/' + this.gatewayHost + ':' + this.gatewayPort, this.gatewayId.getString());
 
@@ -80,7 +81,14 @@ public class GatewayPacketProcessor {
 	public void receiveGatewayConnectionResponse(Packet packet) {
 		if (packet.getStatus() == Status.OK) {
 			logger.info("Gateway authentication successful");
+
 			JSONObject payload = packet.getPayload();
+
+			var missingFields = JSONValidator.validate(payload, List.of("token"));
+			if (!missingFields.isEmpty()) {
+				logger.error("Invalid payload");
+				return;
+			}
 
 			this.packetFactory.setToken(payload.getString("token"));
 		} else {
@@ -90,6 +98,14 @@ public class GatewayPacketProcessor {
 
 	public void receiveGatewayClientRoutingRequest(Packet packet) {
 		JSONObject payload = packet.getPayload();
+
+		var missingFields = JSONValidator.validate(payload, List.of("userId", "token"));
+		if (!missingFields.isEmpty()) {
+			logger.error("Invalid payload");
+			this.internalHandler.sendPacketById(this.gatewayId.getString(), this.packetFactory.createErrorResponse(PayloadType.ROUTING, "Payload inválido"));
+			return;
+		}
+
 		Long userId = payload.getLong("userId");
 		String token = payload.getString("token");
 
@@ -99,9 +115,20 @@ public class GatewayPacketProcessor {
 	}
 
 	private void receiveGatewayClientDisconnectionResponse(Packet packet) {
-		Long userId = packet.getPayload().getLong("userId");
+		JSONObject payload = packet.getPayload();
+		Long userId = null;
 
-		this.externalHandler.sendPacketById(this.userContextMap.getClientId(userId), this.packetFactory.createApplicationClientDisconnectionResponse());
+		if (packet.getStatus() == Status.ERROR) {
+			logger.error("Client disconnection failed: {}", payload.getString("message"));
+		} else {
+			var missingFields = JSONValidator.validate(payload, List.of("userId"));
+			if (!missingFields.isEmpty()) {
+				logger.error("Invalid payload");
+			} else {
+				userId = packet.getPayload().getLong("userId");
+			}
+		}
+
 		this.userContextMap.remove(userId);
 	}
 
@@ -116,8 +143,15 @@ public class GatewayPacketProcessor {
 	}
 
 	private void receiveGatewayMessageForwarding(Packet packet) {
-		Long targetUserId = packet.getPayload().getLong("targetUserId");
+		JSONObject payload = packet.getPayload();
 
+		var missingFields = JSONValidator.validate(payload, List.of("targetUserId", "message", "chatId", "userId"));
+		if (!missingFields.isEmpty()) {
+			logger.error("Invalid payload");
+			return;
+		}
+
+		Long targetUserId = payload.getLong("targetUserId");
 		String targetUserClientId = this.userContextMap.getClientId(targetUserId);
 
 		if (!isNull(targetUserClientId)) {

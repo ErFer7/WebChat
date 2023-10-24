@@ -57,9 +57,6 @@ public class ApplicationPacketProcessor {
 	public void receiveApplicationConnectionRequest(Packet packet) {
 		String id = packet.getId();
 		JSONObject payload = packet.getPayload();
-		if (isNull(payload)) {
-			return;
-		}
 
 		var missingFields = JSONValidator.validate(payload, List.of("host", "identifier", "password", "externalPort"));
 		if (!missingFields.isEmpty()) {
@@ -82,15 +79,23 @@ public class ApplicationPacketProcessor {
 	}
 
 	public void receiveApplicationClientRoutingResponse(Packet packet) {
-		String applicationId = packet.getId();
 		JSONObject payload = packet.getPayload();
+
+		var missingFields = JSONValidator.validate(payload, List.of("userId", "token"));
+		if (!missingFields.isEmpty()) {
+			logger.error("Invalid payload");
+			this.packetFactory.createErrorResponse(PayloadType.ROUTING, "Falha no roteamento");
+			return;
+		}
+
+		String applicationId = packet.getId();
 		Long userId = payload.getLong("userId");
 		String userHost = this.userIdClientIdMap.remove(userId);
 
 		// Verificação de autenticação do servidor de aplicação
 		if (!this.authenticate(packet, PayloadType.ROUTING)) {
 			// Avisa o cliente que o servidor de aplicação não está autenticado e a operação foi cancelada
-			var responsePacket = this.packetFactory.createGatewayClientRoutingResponse(Status.ERROR, userId, null, null, null);
+			var responsePacket = this.packetFactory.createErrorResponse(PayloadType.ROUTING, "Falha no roteamento");
 			this.serverHandler.sendPacketById(userHost, responsePacket);
 			return;
 		}
@@ -106,21 +111,27 @@ public class ApplicationPacketProcessor {
 					this.applicationContextMap.getExternalHost(applicationId)
 			));
 		} else {
-			// TODO: try with another server?
 			logger.warn("Application routing failed");
-			var responsePacket = this.packetFactory.createGatewayClientRoutingResponse(Status.ERROR, userId, null, null, null);
+			var responsePacket = this.packetFactory.createErrorResponse(PayloadType.ROUTING, "Falha no roteamento");
 			this.serverHandler.sendPacketById(userHost, responsePacket);
 		}
 	}
 
 	public void receiveApplicationClientDisconnectionRequest(Packet packet) {
-		if (!this.authenticate(packet, PayloadType.ROUTING)) {
+		String applicationId = packet.getId();
+		JSONObject payload = packet.getPayload();
+
+		var missingFields = JSONValidator.validate(payload, List.of("userId"));
+		if (!missingFields.isEmpty()) {
+			logger.error("Invalid payload");
+			this.serverHandler.sendPacketById(applicationId, this.packetFactory.createErrorResponse(PayloadType.DISCONNECTION, "Payload inválido"));
 			return;
 		}
 
-		// TODO: Autenticar o servidor de aplicação
+		if (!this.authenticate(packet, PayloadType.DISCONNECTION)) {
+			return;
+		}
 
-		String applicationId = packet.getId();
 		Long userId = packet.getPayload().getLong("userId");
 
 		this.userIdApplicationIdMap.remove(userId);
@@ -130,10 +141,19 @@ public class ApplicationPacketProcessor {
 	}
 
 	public void receiveApplicationMessageForwardingRequest(Packet packet) {
-		// TODO: Autenticar o servidor de aplicação
-
 		String applicationId = packet.getId();
 		JSONObject payload = packet.getPayload();
+
+		var missingFields = JSONValidator.validate(payload, List.of("targetUserId", "message", "chatId", "userId"));
+		if (!missingFields.isEmpty()) {
+			logger.error("Invalid payload");
+			this.serverHandler.sendPacketById(applicationId, this.packetFactory.createErrorResponse(PayloadType.MESSAGE, "Payload inválido"));
+			return;
+		}
+
+		if (!this.authenticate(packet, PayloadType.MESSAGE)) {
+			return;
+		}
 
 		Long targetUserId = payload.getLong("targetUserId");
 

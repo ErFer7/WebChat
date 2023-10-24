@@ -16,11 +16,11 @@ public class Server {
 
 	private final Handler externalHandler;
 	private final Handler internalHandler;
-	private final Thread managerThread;
+	private final Manager managerThread;
 	private final SocketChannel internalChannel;
 	private static final Logger logger = LoggerFactory.getLogger(Server.class);
 
-	public Server(Handler externalHandler, Handler internalHandler, Thread managerThread) throws IOException {
+	public Server(Handler externalHandler, Handler internalHandler, Manager managerThread) throws IOException {
 		this.externalHandler = externalHandler;
 		this.internalHandler = internalHandler;
 		this.managerThread = managerThread;
@@ -58,7 +58,7 @@ public class Server {
 			}
 
 			if (this.managerThread != null) {
-				this.managerThread.start();
+				this.managerThread.run();
 			}
 
 			loop.join();

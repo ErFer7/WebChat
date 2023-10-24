@@ -3,6 +3,7 @@ package com.ufsc.webchat.utils;
 import static java.util.Objects.isNull;
 
 import java.util.HashMap;
+import java.util.Map;
 
 import org.javatuples.Pair;
 
@@ -26,6 +27,14 @@ public class UserContextMap {
 	public void setUserClientId(Long userId, String clientId) {
 		Pair<String, String> tokenClientIdPair = this.users.get(userId).setAt1(clientId);
 		this.users.put(userId, tokenClientIdPair);
+	}
+
+	public Long getUserIdByClientId(String clientId) {
+		return this.users.entrySet().stream()
+				.filter(entry -> entry.getValue().getValue1().equals(clientId))
+				.map(Map.Entry::getKey)
+				.findFirst()
+				.orElse(null);
 	}
 
 	public String getToken(Long userId) {
