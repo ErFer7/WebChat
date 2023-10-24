@@ -10,6 +10,7 @@ import useWebSocket from 'react-use-websocket'
 import { useAuth } from '../../hooks/useAuth'
 import ChatList from './components/ChatList'
 import CreateGroupForm from './components/CreateGroupForm'
+import MessageSection from './components/MessageSection'
 import { UserList } from './components/UserList'
 
 function HomePage() {
@@ -18,7 +19,7 @@ function HomePage() {
     `ws:/${applicationConnectionInfo?.applicationHost}`,
     {
       onOpen: () => console.log(`Connected to App WS`),
-      onClose: () => console.log('Connection Closed'),
+      onClose: () => logout(),
     },
     isAuthenticated
   )
@@ -31,6 +32,9 @@ function HomePage() {
   const [tabValue, setTableValue] = useState('chatList')
   const [groupForm, setGroupForm] = useState({ groupName: '', usernames: [] })
   const [createGroupAlert, setCreateGroupAlert] = useState()
+  const [selectedChatId, setSelectedChatId] = useState()
+
+  const chatName = chatList?.find((chat) => chat.id == selectedChatId)?.name
 
   const loggedUsername = useMemo(
     () => userList?.find((user) => user.id == applicationConnectionInfo.userId).username,
@@ -75,6 +79,15 @@ function HomePage() {
     sendJsonMessage(createGroupPacket)
   }
 
+  const handleClickUser = (username) => {
+    const getChatIdPacket = {
+      ...commonConnectedRequestPacket,
+      payloadType: 'GET_USER_CHAT_ID',
+      payload: { userId: applicationConnectionInfo.userId, targetUsername: username },
+    }
+    sendJsonMessage(getChatIdPacket)
+  }
+
   useEffect(() => {
     if (lastJsonMessage) {
       const data = lastJsonMessage
@@ -110,10 +123,24 @@ function HomePage() {
         } else if (data?.status == 'ERROR') {
           setCreateGroupAlert({ severity: 'error', message: data?.payload?.message })
         }
+      } else if (data?.payloadType == 'GET_USER_CHAT_ID') {
+        data?.payload?.chatId && setSelectedChatId(data?.payload?.chatId)
+
+        if (data?.status == 'CREATED') {
+          sendJsonMessage({ ...commonConnectedRequestPacket, payloadType: 'CHAT_LISTING' }) // reload chat list
+        }
       }
       console.log(data)
     }
-  }, [lastJsonMessage, sendJsonMessage, isAuthenticated, handshaked, commonConnectedRequestPacket, commonRequestPacket])
+  }, [
+    lastJsonMessage,
+    sendJsonMessage,
+    isAuthenticated,
+    handshaked,
+    commonConnectedRequestPacket,
+    commonRequestPacket,
+    logout,
+  ])
 
   return isAuthenticated ? (
     <div>
@@ -153,10 +180,15 @@ function HomePage() {
                     </TabList>
                   </Box>
                   <TabPanel value='chatList' sx={{ p: 0 }}>
-                    <ChatList chats={chatList} />
+                    <ChatList
+                      chats={chatList}
+                      selectedChatId={selectedChatId}
+                      setSelectedChatId={setSelectedChatId}
+                      chatName={chatName}
+                    />
                   </TabPanel>
                   <TabPanel value='userList' sx={{ p: 0 }}>
-                    <UserList users={userList} />
+                    <UserList users={userList} handleClickUser={handleClickUser} />
                   </TabPanel>
                   <TabPanel value='createGroup' sx={{ p: 0 }}>
                     <CreateGroupForm
@@ -172,7 +204,7 @@ function HomePage() {
             )}
           </Grid>
           <Grid item xs={9}>
-            listar mensagens
+            {selectedChatId && <MessageSection chatName={chatName} />}
           </Grid>
         </Grid>
       </div>

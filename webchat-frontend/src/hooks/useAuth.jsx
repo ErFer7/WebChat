@@ -23,11 +23,11 @@ export function AuthProvider({ children }) {
     localStorage.setItem('applicationConnectionInfo', JSON.stringify(newAppConnInfo))
   }, [])
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('token')
     localStorage.removeItem('applicationConnectionInfo')
     setIsAuthenticated(false)
-  }
+  }, [])
 
   useEffect(() => {
     const token = localStorage.getItem('token')
