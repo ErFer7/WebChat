@@ -26,7 +26,7 @@ public class UserService {
 		userDto.setPassword(payload.getString("password"));
 		ValidationMessage validationMessage = this.userRegisterValidator.validate(userDto);
 		if (!validationMessage.isValid()) {
-			return new ServiceResponse(Status.ERROR, validationMessage.message(), null);
+			return new ServiceResponse(Status.VALIDATION_ERROR, validationMessage.message(), null);
 		}
 
 		EntityManager em = EntityManagerProvider.getEntityManager();
