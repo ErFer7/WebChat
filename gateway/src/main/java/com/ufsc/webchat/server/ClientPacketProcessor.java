@@ -101,18 +101,7 @@ public class ClientPacketProcessor {
 		String clientId = packet.getId();
 		JSONObject payload = packet.getPayload();
 
-		if (isNull(payload)) {
-			return;
-		}
-
-		var missingFields = JSONValidator.validate(payload, List.of("host", "username", "password"));
-		if (!missingFields.isEmpty()) {
-			return;
-		}
-
-		String host = payload.getString("host");
-		this.serverHandler.associateIdToHost(host, clientId);
-		ServiceResponse serviceAnswer = this.userService.register(packet.getPayload());
+		ServiceResponse serviceAnswer = this.userService.register(payload);
 		this.serverHandler.sendPacketById(clientId, this.packetFactory.createClientRegisterUserResponse(serviceAnswer.status(), serviceAnswer.message()));
 	}
 
