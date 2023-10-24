@@ -1,5 +1,7 @@
 package com.ufsc.webchat.utils;
 
+import static java.util.Objects.isNull;
+
 import java.util.HashMap;
 
 import org.javatuples.Pair;
@@ -27,11 +29,23 @@ public class UserContextMap {
 	}
 
 	public String getToken(Long userId) {
-		return this.users.get(userId).getValue0();
+		Pair<String, String> tokenClientIdPair = this.users.get(userId);
+
+		if (isNull(tokenClientIdPair)) {
+			return null;
+		}
+
+		return tokenClientIdPair.getValue0();
 	}
 
 	public String getClientId(Long userId) {
-		return this.users.get(userId).getValue1();
+		Pair<String, String> tokenClientIdPair = this.users.get(userId);
+
+		if (isNull(tokenClientIdPair)) {
+			return null;
+		}
+
+		return tokenClientIdPair.getValue1();
 	}
 
 }

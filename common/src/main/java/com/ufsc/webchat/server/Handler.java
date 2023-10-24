@@ -80,27 +80,27 @@ public abstract class Handler extends AbstractWebSocketHandler {
 	}
 
 	protected void sessionCreated(IWebSocketSession session) {
-		logger.info("Session created: {}", session.getLocalAddress());
+		logger.info("Session created: {}", session.getName());
 	}
 
 	protected void sessionOpened(IWebSocketSession session) {
-		logger.info("Session opened: {}", session.getLocalAddress());
+		logger.info("Session opened: {}", session.getName());
 	}
 
 	protected void sessionReady(IWebSocketSession session) {
-		logger.info("Session ready: {}", session.getLocalAddress());
+		logger.info("Session ready: {}", session.getName());
 
 		this.sessions.addSession(session.getName(), session.getRemoteAddress().toString(), session);
 	}
 
 	protected void sessionClosed(IWebSocketSession session) {
-		logger.info("Session closed: {}", session.getLocalAddress());
+		logger.info("Session closed: {}", session.getName());
 
 		this.sessions.removeByName(session.getName());
 	}
 
 	protected void sessionEnding(IWebSocketSession session) {
-		logger.info("Session ending: {}", session.getLocalAddress());
+		logger.info("Session ending: {}", session.getName());
 	}
 
 	public void setInternalChannel(AbstractSelectableChannel internalChannel) {
@@ -108,7 +108,7 @@ public abstract class Handler extends AbstractWebSocketHandler {
 	}
 
 	public AbstractSelectableChannel getInternalChannel() {
-		return internalChannel;
+		return this.internalChannel;
 	}
 
 	public void associateIdToHost(String host, String id) {

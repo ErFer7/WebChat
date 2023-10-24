@@ -15,14 +15,14 @@ public class WebChatApplication {
 
 		EntityManagerProvider.init();
 
-		ExternalHandler serverHandler = new ExternalHandler();
-		InternalHandler clientHandler = new InternalHandler();
-		ManagerThread managerThread = new ManagerThread(serverHandler, clientHandler);
+		ExternalHandler externalHandler = new ExternalHandler();
+		InternalHandler internalHandler = new InternalHandler();
+		ManagerThread managerThread = new ManagerThread(externalHandler, internalHandler);
 
-		serverHandler.setManagerThread(managerThread);
-		clientHandler.setManagerThread(managerThread);
+		externalHandler.setManagerThread(managerThread);
+		internalHandler.setManagerThread(managerThread);
 
-		Server webServer = new Server(serverHandler, clientHandler, managerThread);
+		Server webServer = new Server(externalHandler, internalHandler, managerThread);
 
 		webServer.start(0);
 	}

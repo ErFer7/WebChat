@@ -48,6 +48,7 @@ public class Packet {
 			this.payload = FieldParser.nullableFieldToJSONObject(jsonPacket, "payload");
 		} catch (Exception exception) {
 			logger.error("Error parsing packet: {}", exception.getMessage());
+			// TODO: Se for possível (ter possibilidade de enviar mensagem de volta para quem enviou o pacote), enviar mensagem de erro
 		}
 	}
 
