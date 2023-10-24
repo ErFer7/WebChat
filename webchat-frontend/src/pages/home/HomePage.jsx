@@ -4,7 +4,7 @@ import LogoutIcon from '@mui/icons-material/Logout'
 import { TabContext, TabList, TabPanel } from '@mui/lab'
 
 import { AppBar, Box, Button, Grid, IconButton, Tab, Toolbar, Typography } from '@mui/material'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import useWebSocket from 'react-use-websocket'
 import { useAuth } from '../../hooks/useAuth'
@@ -33,6 +33,7 @@ function HomePage() {
   const [groupForm, setGroupForm] = useState({ groupName: '', usernames: [] })
   const [createGroupAlert, setCreateGroupAlert] = useState()
   const [selectedChatId, setSelectedChatId] = useState()
+  const [messages, setMessages] = useState()
 
   const chatName = chatList?.find((chat) => chat.id == selectedChatId)?.name
 
@@ -88,6 +89,36 @@ function HomePage() {
     sendJsonMessage(getChatIdPacket)
   }
 
+  const handleSendMessage = (message) => {
+    const sendMessagePacket = {
+      ...commonConnectedRequestPacket,
+      payloadType: 'MESSAGE',
+      payload: {
+        chatId: selectedChatId,
+        userId: applicationConnectionInfo.userId,
+        message: message,
+      },
+    }
+    sendJsonMessage(sendMessagePacket)
+  }
+
+  const handleSetSelectChatId = useCallback(
+    (chatId) => {
+      console.log(chatId, applicationConnectionInfo.userId)
+      setSelectedChatId(chatId)
+      const sendMessageListPacket = {
+        ...commonConnectedRequestPacket,
+        payloadType: 'MESSAGE_LISTING',
+        payload: {
+          chatId: chatId,
+          userId: applicationConnectionInfo.userId,
+        },
+      }
+      sendJsonMessage(sendMessageListPacket)
+    },
+    [commonConnectedRequestPacket, applicationConnectionInfo.userId, sendJsonMessage]
+  )
+
   useEffect(() => {
     if (lastJsonMessage) {
       const data = lastJsonMessage
@@ -124,11 +155,13 @@ function HomePage() {
           setCreateGroupAlert({ severity: 'error', message: data?.payload?.message })
         }
       } else if (data?.payloadType == 'GET_USER_CHAT_ID') {
-        data?.payload?.chatId && setSelectedChatId(data?.payload?.chatId)
+        data?.payload?.chatId && handleSetSelectChatId(data?.payload?.chatId)
 
         if (data?.status == 'CREATED') {
           sendJsonMessage({ ...commonConnectedRequestPacket, payloadType: 'CHAT_LISTING' }) // reload chat list
         }
+      } else if (data?.payloadType == 'MESSAGE_LISTING' && data?.status == 'OK') {
+        setMessages(data?.payload?.messages)
       }
       console.log(data)
     }
@@ -140,6 +173,7 @@ function HomePage() {
     commonConnectedRequestPacket,
     commonRequestPacket,
     logout,
+    handleSetSelectChatId,
   ])
 
   return isAuthenticated ? (
@@ -183,7 +217,7 @@ function HomePage() {
                     <ChatList
                       chats={chatList}
                       selectedChatId={selectedChatId}
-                      setSelectedChatId={setSelectedChatId}
+                      setSelectedChatId={handleSetSelectChatId}
                       chatName={chatName}
                     />
                   </TabPanel>
@@ -204,7 +238,9 @@ function HomePage() {
             )}
           </Grid>
           <Grid item xs={9}>
-            {selectedChatId && <MessageSection chatName={chatName} />}
+            {selectedChatId && (
+              <MessageSection messages={messages} chatName={chatName} handleSendMessage={handleSendMessage} />
+            )}
           </Grid>
         </Grid>
       </div>

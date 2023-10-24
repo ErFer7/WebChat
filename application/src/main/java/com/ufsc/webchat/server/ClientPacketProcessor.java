@@ -171,9 +171,10 @@ public class ClientPacketProcessor {
 		if (!this.authenticateClient(packet, PayloadType.MESSAGE_LISTING)) {
 			return;
 		}
-		var messagesDto = this.messageService.loadMessages(packet.getPayload());
-		var responsePayload = new JSONObject(Map.of("messages", messagesDto));
-		var packetResponse = this.packetFactory.createGenericClientResponse(Status.OK, PayloadType.MESSAGE_LISTING, responsePayload, null);
+		var serviceResponse = this.messageService.loadMessages(packet.getPayload());
+		var messagesDto = serviceResponse.payload();
+		var responsePayload = isNull(messagesDto) ? null : new JSONObject(Map.of("messages", messagesDto));
+		var packetResponse = this.packetFactory.createGenericClientResponse(serviceResponse.status(), PayloadType.MESSAGE_LISTING, responsePayload, serviceResponse.message());
 		this.externalHandler.sendPacketById(packet.getId(), packetResponse);
 	}
 

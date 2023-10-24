@@ -14,13 +14,15 @@ function MessageSection({ messages, chatName, handleSendMessage }) {
   }
 
   const handleMessageChange = (event) => setMessage(event.target.value)
+
   return (
     <Box sx={{ p: 3 }}>
       <h3>{chatName}</h3>
       {messages?.map((message, index) => (
-        <div key={index} className='message'>
-          <div className='message-sender'>{message.sender}</div>
-          <div className='message-text'>{message.text}</div>
+        <div style={{ marginBottom: '10px' }} key={index} className='message'>
+          <div>senderId: {message.senderId}</div>
+          <div>{message.message}</div>
+          <div>sentAt: {message.sentAt}</div>
         </div>
       ))}
       <TextField
