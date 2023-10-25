@@ -48,7 +48,8 @@ public class GatewayPacketProcessor {
 	public void process(Packet packet) {
 		switch (packet.getPayloadType()) {
 		case HOST -> this.receiveGatewayHostInfo(packet);
-		case CONNECTION -> this.receiveGatewayConnectionResponse(packet);
+		case APPLICATION_CONNECTION -> this.receiveGatewayConnectionResponse(packet);
+		case CLIENT_CONNECTION -> this.receiveGatewayClientConnectionResponse(packet);
 		case ROUTING -> this.receiveGatewayClientRoutingRequest(packet);
 		case MESSAGE_FORWARDING -> this.receiveGatewayMessageForwarding(packet);
 		case MESSAGE -> this.receiveGatewayMessageResponse(packet);
@@ -116,20 +117,35 @@ public class GatewayPacketProcessor {
 
 	private void receiveGatewayClientDisconnectionResponse(Packet packet) {
 		JSONObject payload = packet.getPayload();
-		Long userId = null;
 
 		if (packet.getStatus() == Status.ERROR) {
 			logger.error("Client disconnection failed: {}", payload.getString("message"));
-		} else {
-			var missingFields = JSONValidator.validate(payload, List.of("userId"));
-			if (!missingFields.isEmpty()) {
-				logger.error("Invalid payload");
-			} else {
-				userId = packet.getPayload().getLong("userId");
-			}
+		}
+	}
+
+	private void receiveGatewayClientConnectionResponse(Packet packet) {
+		JSONObject payload = packet.getPayload();
+
+		if (packet.getStatus() == Status.ERROR) {
+			logger.error("Client connection failed: {}", payload.getString("message"));
+			return;
 		}
 
-		this.userContextMap.remove(userId);
+		var missingFields = JSONValidator.validate(payload, List.of("clientId"));
+		if (!missingFields.isEmpty()) {
+			logger.error("Invalid payload");
+			return;
+		}
+
+		String clientId = payload.getString("clientId");
+
+		if (packet.getStatus() == Status.OK) {
+			logger.info("Client connection successful");
+			this.externalHandler.sendPacketById(clientId, this.packetFactory.createOkResponse(PayloadType.CLIENT_CONNECTION, "Conexão estabelecida"));
+		} else {
+			logger.warn("Client connection failed");
+			this.externalHandler.sendPacketById(clientId, this.packetFactory.createErrorResponse(PayloadType.CLIENT_CONNECTION, "Conexão não estabelecida"));
+		}
 	}
 
 	private void receiveGatewayMessageResponse(Packet packet) {

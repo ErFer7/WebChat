@@ -2,7 +2,8 @@ package com.ufsc.webchat.protocol.enums;
 
 public enum PayloadType {
 	HOST,
-	CONNECTION,
+	APPLICATION_CONNECTION,
+	CLIENT_CONNECTION,
 	ROUTING,
 	USER_CREATION,
 	USER_LISTING,

@@ -44,7 +44,8 @@ public class ApplicationPacketProcessor {
 	public void process(Packet packet) {
 		if (packet.getOperationType() == OperationType.REQUEST) {
 			switch (packet.getPayloadType()) {
-			case CONNECTION -> this.receiveApplicationConnectionRequest(packet);
+			case APPLICATION_CONNECTION -> this.receiveApplicationConnectionRequest(packet);
+			case CLIENT_CONNECTION -> this.receiveApplicationClientConnectionRequest(packet);
 			case DISCONNECTION -> this.receiveApplicationClientDisconnectionRequest(packet);
 			case MESSAGE_FORWARDING -> this.receiveApplicationMessageForwardingRequest(packet);
 			default -> logger.warn("Invalid payload type");
@@ -74,8 +75,27 @@ public class ApplicationPacketProcessor {
 			this.applicationContextMap.add(id, token, host.split(":")[0] + ':' + externalPort);
 			this.serverHandler.sendPacketById(id, this.packetFactory.createApplicationConnectionResponse(Status.OK, token));
 		} else {
-			this.serverHandler.sendPacketById(id, this.packetFactory.createErrorResponse(PayloadType.CONNECTION, "Erro na autenticação"));
+			this.serverHandler.sendPacketById(id, this.packetFactory.createErrorResponse(PayloadType.APPLICATION_CONNECTION, "Erro na autenticação"));
 		}
+	}
+
+	public void receiveApplicationClientConnectionRequest(Packet packet) {
+		String applicationId = packet.getId();
+		JSONObject payload = packet.getPayload();
+
+		var missingFields = JSONValidator.validate(payload, List.of("clientId"));
+		if (!missingFields.isEmpty()) {
+			this.serverHandler.sendPacketById(applicationId, this.packetFactory.createErrorResponse(PayloadType.CLIENT_CONNECTION, "Payload inválido"));
+			return;
+		}
+
+		if (!this.authenticate(packet, PayloadType.CLIENT_CONNECTION)) {
+			this.serverHandler.sendPacketById(applicationId, this.packetFactory.createErrorResponse(PayloadType.CLIENT_CONNECTION, "Aplicação não autenticada"));
+			return;
+		}
+
+		this.applicationContextMap.incrementUserCount(applicationId);
+		this.serverHandler.sendPacketById(applicationId, this.packetFactory.createOkResponse(PayloadType.CLIENT_CONNECTION, payload));
 	}
 
 	public void receiveApplicationClientRoutingResponse(Packet packet) {
@@ -101,7 +121,6 @@ public class ApplicationPacketProcessor {
 		}
 
 		if (packet.getStatus() == Status.OK) {
-			this.applicationContextMap.incrementUserCount(applicationId);
 			this.userIdApplicationIdMap.put(userId, applicationId);
 			this.serverHandler.sendPacketById(userHost, this.packetFactory.createGatewayClientRoutingResponse(
 					Status.OK,
