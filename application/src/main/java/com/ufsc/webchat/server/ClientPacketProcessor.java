@@ -48,7 +48,7 @@ public class ClientPacketProcessor {
 
 	public void process(Packet packet) {
 		switch (packet.getPayloadType()) {
-		case CONNECTION -> this.receiveClientConnectionRequest(packet);
+		case CLIENT_CONNECTION -> this.receiveClientConnectionRequest(packet);
 		case USER_LISTING -> this.receiveClientUserListingRequest(packet);
 		case GROUP_CHAT_CREATION -> this.receiveClientGroupChatCreationRequest(packet);
 		case CHAT_LISTING -> this.receiveClientChatListingRequest(packet);
@@ -71,7 +71,6 @@ public class ClientPacketProcessor {
 
 	public void receiveClientDisconnection(String clientId) {
 		Long userId = this.userContextMap.getUserIdByClientId(clientId);
-		this.userContextMap.remove(userId);
 		this.internalHandler.sendPacketById(this.gatewayId.getString(), this.packetFactory.createApplicationClientDisconnectingRequest(userId));
 	}
 
@@ -97,7 +96,7 @@ public class ClientPacketProcessor {
 			return;
 		}
 
-		if (!this.authenticateClient(packet, PayloadType.CONNECTION)) {
+		if (!this.authenticateClient(packet, PayloadType.CLIENT_CONNECTION)) {
 			return;
 		}
 
@@ -109,7 +108,10 @@ public class ClientPacketProcessor {
 		this.externalHandler.associateIdToHost(host, clientId);
 		this.userContextMap.setUserClientId(userId, clientId);
 
-		this.externalHandler.sendPacketById(clientId, this.packetFactory.createClientConnectionResponse(Status.OK));
+		JSONObject newPayload = new JSONObject();
+		newPayload.put("clientId", clientId);
+
+		this.internalHandler.sendPacketById(this.gatewayId.getString(), this.packetFactory.createRequest(PayloadType.CLIENT_CONNECTION, newPayload));
 	}
 
 	private void receiveClientUserListingRequest(Packet packet) {
@@ -195,7 +197,7 @@ public class ClientPacketProcessor {
 
 		var missingFields = JSONValidator.validate(payload, List.of("message", "chatId", "userId"));
 		if (!missingFields.isEmpty()) {
-			this.externalHandler.sendPacketById(packet.getId(), this.packetFactory.createErrorResponse(PayloadType.GROUP_CHAT_ADDITION, "Payload inválido"));
+			this.externalHandler.sendPacketById(packet.getId(), this.packetFactory.createErrorResponse(PayloadType.MESSAGE, "Payload inválido"));
 			logger.error("Invalid payload");
 			return;
 		}
@@ -224,6 +226,7 @@ public class ClientPacketProcessor {
 			return;
 		}
 
+		this.externalHandler.sendPacketById(clientId, this.packetFactory.createOkResponse(PayloadType.MESSAGE, "Mensagem enviada com sucesso"));
 		this.broadCastClientMessage((List<Long>) userServiceResponse.payload(), senderId, payload);
 	}
 
