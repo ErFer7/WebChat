@@ -27,6 +27,7 @@ function MessageSection({ messages, chatName, handleSendMessage }) {
       ))}
       <TextField
         onChange={handleMessageChange}
+        value={message}
         multiline
         rows={3}
         placeholder='Digite sua mensagem'

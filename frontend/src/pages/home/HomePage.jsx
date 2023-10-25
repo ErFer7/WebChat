@@ -33,7 +33,7 @@ function HomePage() {
   const [groupForm, setGroupForm] = useState({ groupName: '', usernames: [] })
   const [createGroupAlert, setCreateGroupAlert] = useState()
   const [selectedChatId, setSelectedChatId] = useState()
-  const [messages, setMessages] = useState()
+  const [messages, setMessages] = useState([])
 
   const chatName = chatList?.find((chat) => chat.id == selectedChatId)?.name
 
@@ -100,6 +100,13 @@ function HomePage() {
       },
     }
     sendJsonMessage(sendMessagePacket)
+    setMessages(
+      messages.concat({
+        senderId: applicationConnectionInfo.userId,
+        message: message,
+        sentAt: new Date().toISOString(),
+      })
+    )
   }
 
   const handleSetSelectChatId = useCallback(
@@ -162,6 +169,14 @@ function HomePage() {
         }
       } else if (data?.payloadType == 'MESSAGE_LISTING' && data?.status == 'OK') {
         setMessages(data?.payload?.messages)
+      } else if (data?.payloadType == 'MESSAGE' && data?.status == 'OK') {
+        setMessages((prevState) =>
+          prevState.concat({
+            senderId: data?.payload?.userId, // pegar username
+            message: data?.payload?.message,
+            sentAt: new Date().toISOString(), // pegar data do servidor
+          })
+        )
       }
       console.log(data)
     }
