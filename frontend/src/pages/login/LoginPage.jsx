@@ -81,14 +81,14 @@ function LoginPage() {
       } else if (data?.payloadType == 'ROUTING') {
         if (data?.status == 'OK') {
           login(data)
-        } else if (data?.status == 'ERROR') {
+        } else if (data?.status == 'ERROR' || data?.status == 'VALIDATION_ERROR') {
           setAlert({ severity: 'error', message: data?.payload?.message })
         }
         setLoading(false)
       } else if (data?.payloadType == 'USER_CREATION') {
         if (data?.status == 'CREATED') {
           setAlert({ severity: 'success', message: 'Usuário criado com sucesso!' })
-        } else if (data?.status == 'ERROR') {
+        } else if (data?.status == 'ERROR' || data?.status == 'VALIDATION_ERROR') {
           setAlert({ severity: 'error', message: data?.payload?.message })
         }
         setLoading(false)

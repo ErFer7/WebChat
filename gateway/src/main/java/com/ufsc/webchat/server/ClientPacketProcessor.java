@@ -95,6 +95,7 @@ public class ClientPacketProcessor {
 		this.serverHandler.associateIdToHost(host, clientId);
 		ServiceResponse serviceAnswer = this.userService.register(packet.getPayload());
 		if (serviceAnswer.status().equals(Status.ERROR)) {
+			logger.info("Retry chamado");
 			Retry.launch(packet, this);
 			return;
 		}
@@ -107,6 +108,7 @@ public class ClientPacketProcessor {
 
 		ServiceResponse serviceAnswer = this.userService.register(payload);
 		this.serverHandler.sendPacketById(clientId, this.packetFactory.createClientRegisterUserResponse(serviceAnswer.status(), serviceAnswer.message()));
+		logger.info("Executou Retry");
 	}
 
 }
