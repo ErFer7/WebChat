@@ -128,7 +128,7 @@ function HomePage() {
           const connectionPacket = {
             ...commonRequestPacket,
             id: data?.id,
-            payloadType: 'CONNECTION',
+            payloadType: 'CLIENT_CONNECTION',
             payload: {
               ...commonRequestPacket.payload,
               host: data?.payload?.host,
@@ -137,7 +137,7 @@ function HomePage() {
           sendJsonMessage(connectionPacket)
           setHandkshaked(true)
         }
-      } else if (data?.payloadType == 'CONNECTION' && data?.status == 'OK') {
+      } else if (data?.payloadType == 'CLIENT_CONNECTION' && data?.status == 'OK') {
         // conectado, vou começar a requisitar as coisas da tela...
         sendJsonMessage({ ...commonConnectedRequestPacket, payloadType: 'CHAT_LISTING' })
         sendJsonMessage({ ...commonConnectedRequestPacket, payloadType: 'USER_LISTING' })

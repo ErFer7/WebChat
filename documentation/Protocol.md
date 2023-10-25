@@ -130,11 +130,13 @@ sequenceDiagram
     Client ->> Gateway: Routing request
     Gateway ->> Application: Routing request
     Application ->> Gateway: Routing response
-    Gateway -->> Client: Routing response
+    Gateway ->> Client: Routing response
     Client -->> Gateway: Websocket disconnection
     Client -->> Application: Websocket connection
     Application ->> Client: Host
     Client ->> Application: Connection request
+    Application ->> Gateway: Connection request
+    Gateway ->> Application: Connection response
     Application ->> Client: Connection response
 ```
 
@@ -433,7 +435,6 @@ sequenceDiagram
   Client A ->> Application: Message
   Application ->> Client A: Response
   Application ->> Client B: Message
-  Client B ->> Application: Response
 ```
 
 Cenário em que os dois usuários estão conectados em servidores diferentes.
@@ -447,35 +448,4 @@ sequenceDiagram
     Gateway ->> Application B: Message
     Application B ->> Gateway: Response
     Application B ->> Client B: Message
-    Client B ->> Application B: Response
-```
-
----
-
-### Envio de mensagem (ideia antiga)
-
-Cenário em que os dois usuários estão conectados em servidores diferentes, mas os servidores estão conectados entre si.
-
-```mermaid
-sequenceDiagram
-    Client A ->> Application A: Message
-    Application A ->> Client A: Response
-    Application A ->> Application B: Message
-    Application B ->> Application A: Response
-    Application B ->> Client B: Message
-    Client B ->> Application B: Response
-```
-
-Cenário em que os dois usuários estão conectados em servidores diferentes, mas os servidores não estão conectados entre si.
-
-```mermaid
-sequenceDiagram
-    Client A ->> Application A: Message
-    Application A ->> Client A: Response
-    Application A ->> Gateway: Request application server
-    Gateway ->> Application A: application server host
-    Application A ->> Application B: Request connection with message
-    Application B ->> Application A: Connection and message response
-    Application B ->> Client B: Message
-    Client B ->> Application B: Response
 ```

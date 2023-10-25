@@ -38,11 +38,19 @@ public class PacketFactory {
 		return this.createPacket(Status.OK, OperationType.INFO, PayloadType.HOST, payload);
 	}
 
+	public Packet createRequest(PayloadType payloadType, JSONObject payload) {
+		return this.createPacket(null, OperationType.REQUEST, payloadType, payload);
+	}
+
 	public Packet createOkResponse(PayloadType payloadType, String message) {
 		JSONObject payload = new JSONObject();
 
 		payload.put("message", message);
 
+		return this.createPacket(Status.OK, OperationType.RESPONSE, payloadType, payload);
+	}
+
+	public Packet createOkResponse(PayloadType payloadType, JSONObject payload) {
 		return this.createPacket(Status.OK, OperationType.RESPONSE, payloadType, payload);
 	}
 
@@ -62,7 +70,7 @@ public class PacketFactory {
 		payload.put("host", host);
 		payload.put("externalPort", externalPort);
 
-		return this.createPacket(null, OperationType.REQUEST, PayloadType.CONNECTION, payload);
+		return this.createPacket(null, OperationType.REQUEST, PayloadType.APPLICATION_CONNECTION, payload);
 	}
 
 	public Packet createApplicationConnectionResponse(Status status, String token) {
@@ -70,7 +78,7 @@ public class PacketFactory {
 
 		payload.put("token", token);
 
-		return this.createPacket(status, OperationType.RESPONSE, PayloadType.CONNECTION, payload);
+		return this.createPacket(status, OperationType.RESPONSE, PayloadType.APPLICATION_CONNECTION, payload);
 	}
 
 	public Packet createClientRoutingRequest(Long userId, String token) {
@@ -102,10 +110,6 @@ public class PacketFactory {
 		return this.createPacket(status, OperationType.RESPONSE, PayloadType.ROUTING, payload);
 	}
 
-	public Packet createClientConnectionResponse(Status status) {
-		return this.createPacket(status, OperationType.RESPONSE, PayloadType.CONNECTION, null);
-	}
-
 	public Packet createClientRegisterUserResponse(Status status, String message) {
 		JSONObject payload = new JSONObject();
 		payload.put("message", message);
@@ -122,10 +126,6 @@ public class PacketFactory {
 		JSONObject payload = new JSONObject();
 		payload.put("userId", userId);
 		return this.createPacket(Status.OK, OperationType.RESPONSE, PayloadType.DISCONNECTION, payload);
-	}
-
-	public Packet createApplicationClientDisconnectionResponse() {
-		return this.createPacket(Status.OK, OperationType.RESPONSE, PayloadType.DISCONNECTION, null);
 	}
 
 	public Packet createGroupChatAdditionResponse(Status status, String message) {

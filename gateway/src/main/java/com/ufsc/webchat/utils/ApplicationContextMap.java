@@ -9,7 +9,7 @@ import org.javatuples.Triplet;
 
 public class ApplicationContextMap {
 
-	// ID, Token, External Host, User Count
+	// ID -> (Token, External Host, User Count)
 	private final HashMap<String, Triplet<String, String, Integer>> applications;
 
 	public ApplicationContextMap() {
