@@ -125,13 +125,10 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    Client -->> Gateway: Websocket connection
-    Gateway ->> Client: Host
-    Client ->> Gateway: Routing request
+    Client -->> Gateway: Routing request (REST)
     Gateway ->> Application: Routing request
     Application ->> Gateway: Routing response
-    Gateway ->> Client: Routing response
-    Client -->> Gateway: Websocket disconnection
+    Gateway -->> Client: Routing response (REST)
     Client -->> Application: Websocket connection
     Application ->> Client: Host
     Client ->> Application: Connection request
@@ -333,11 +330,8 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-  Client -->> Gateway: Websocket connection
-  Gateway ->> Client: Host
-  Client ->> Gateway: Creation request
-  Gateway ->> Client: Creation response
-  Client -->> Gateway: Websocket disconnection
+  Client -->> Gateway: Creation request (REST)
+  Gateway -->> Client: Creation response (REST)
 ```
 
 1. O cliente se conecta

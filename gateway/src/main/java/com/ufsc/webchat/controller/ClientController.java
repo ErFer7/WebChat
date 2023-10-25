@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ufsc.webchat.server.GatewayThread;
+import com.ufsc.webchat.server.ServerHandler;
 
 @RestController
 @RequestMapping("/api/client")
@@ -16,7 +17,8 @@ public class ClientController {
 	@GetMapping("/register")
 	public ResponseEntity<String> register() {
 		// TODO: Usar instância aqui (Cuidado, é uma thread, avalie se tudo é threadsafe).
-		GatewayThread gatewayThread = GatewayThread.getInstance();
+		// Sugiro esperar com um lock ou qualquer coisa assim, só deve ser avaliado se o spring não vai morrer com isso.
+		ServerHandler serverHandler = GatewayThread.getInstance().getServerHandler();
 
 		return ResponseEntity.ok("Register test");
 	}
@@ -24,7 +26,7 @@ public class ClientController {
 	@GetMapping("/route")
 	public ResponseEntity<String> route() {
 		// TODO: Usar instância aqui (Cuidado, é uma thread, avalie se tudo é threadsafe).
-		GatewayThread gatewayThread = GatewayThread.getInstance();
+		ServerHandler serverHandler = GatewayThread.getInstance().getServerHandler();
 
 		return ResponseEntity.ok("Route test");
 	}
