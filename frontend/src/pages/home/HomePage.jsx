@@ -67,7 +67,6 @@ function HomePage() {
   }
 
   const handleCreateGroup = (model) => {
-    console.log(model)
     const createGroupPacket = {
       ...commonConnectedRequestPacket,
       payloadType: 'GROUP_CHAT_CREATION',
@@ -111,7 +110,6 @@ function HomePage() {
 
   const handleSetSelectChatId = useCallback(
     (chatId) => {
-      console.log(chatId, applicationConnectionInfo.userId)
       setSelectedChatId(chatId)
       const sendMessageListPacket = {
         ...commonConnectedRequestPacket,
