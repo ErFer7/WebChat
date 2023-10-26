@@ -44,7 +44,7 @@ public class ChatService {
 
 		ValidationMessage validationMessage = this.chatGroupAdditionValidator.validate(chatId, addedUserId, userId);
 		if (!validationMessage.isValid()) {
-			return new ServiceResponse(Status.ERROR, validationMessage.message(), null);
+			return new ServiceResponse(Status.VALIDATION_ERROR, validationMessage.message(), null);
 		}
 
 		EntityManager em = EntityManagerProvider.getEntityManager();
@@ -72,7 +72,7 @@ public class ChatService {
 		UserSearchResultDto userSearchResultDto = this.loadUsersIdFromUsernames(usernames);
 		ValidationMessage validationMessage = this.chatGroupValidator.validate(userSearchResultDto);
 		if (!validationMessage.isValid()) {
-			return new ServiceResponse(Status.ERROR, validationMessage.message(), null);
+			return new ServiceResponse(Status.VALIDATION_ERROR, validationMessage.message(), null);
 		}
 
 		List<Long> chatMembers = userSearchResultDto.getFoundUsersIds();

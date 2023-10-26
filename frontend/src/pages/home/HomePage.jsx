@@ -157,7 +157,7 @@ function HomePage() {
             setCreateGroupAlert({ severity: 'success', message: 'Grupo criado com sucesso!' })
             setGroupForm({ groupName: '', usernames: [] })
             fetchChats()
-          } else if (data?.status == 'ERROR') {
+          } else if (data?.status == 'ERROR' || data?.status == 'VALIDATION_ERROR') {
             setCreateGroupAlert({ severity: 'error', message: data?.payload?.message })
           }
 

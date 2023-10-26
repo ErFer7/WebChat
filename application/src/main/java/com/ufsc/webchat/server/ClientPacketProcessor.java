@@ -60,6 +60,15 @@ public class ClientPacketProcessor {
 		}
 	}
 
+	public void tryAgain(Packet packet) {
+		switch (packet.getPayloadType()) {
+			case GROUP_CHAT_CREATION -> this.retryClientGroupChatCreationRequest(packet);
+			case GROUP_CHAT_ADDITION -> this.retryClientGroupChatAdditionRequest(packet);
+			case MESSAGE -> this.retryClientMessage(packet);
+			default -> logger.warn("Unexpected packet type in retry: {}", packet.getPayloadType());
+		}
+	}
+
 	public void receiveClientDisconnection(String clientId) {
 		Long userId = this.userContextMap.getUserIdByClientId(clientId);
 		this.internalHandler.sendPacketById(this.gatewayId.getString(), this.packetFactory.createApplicationClientDisconnectingRequest(userId));
@@ -132,6 +141,12 @@ public class ClientPacketProcessor {
 		ServiceResponse serviceResponse = this.chatService.saveChatGroup(packet.getPayload());
 		var chatId = serviceResponse.payload();
 		JSONObject responsePayload = isNull(chatId) ? null : new JSONObject(Map.of("chatId", chatId));
+
+		if (serviceResponse.status().equals(Status.ERROR)) {
+			Retry.launch(packet, this);
+			return;
+		}
+
 		var responsePacket = this.packetFactory.createGenericClientResponse(serviceResponse.status(), PayloadType.GROUP_CHAT_CREATION, responsePayload, serviceResponse.message());
 		this.externalHandler.sendPacketById(packet.getId(), responsePacket);
 	}
@@ -169,6 +184,11 @@ public class ClientPacketProcessor {
 			return;
 		}
 		ServiceResponse serviceResponse = this.chatService.addToChatGroup(packet.getPayload());
+
+		if (serviceResponse.status().equals(Status.ERROR)) {
+			Retry.launch(packet, this);
+		}
+
 		this.externalHandler.sendPacketById(packet.getId(), this.packetFactory.createGroupChatAdditionResponse(serviceResponse.status(), serviceResponse.message()));
 	}
 
@@ -190,7 +210,13 @@ public class ClientPacketProcessor {
 		Long senderId = payload.getLong("userId");
 
 		ServiceResponse messageServiceResponse = this.messageService.saveMessage(payload);
+
 		if (messageServiceResponse.status() == Status.ERROR) {
+			Retry.launch(packet, this);
+			return;
+		}
+
+		if (messageServiceResponse.status() == Status.VALIDATION_ERROR) {
 			this.externalHandler.sendPacketById(clientId, this.packetFactory.createErrorResponse(PayloadType.MESSAGE, messageServiceResponse.message()));
 			return;
 		}
@@ -260,6 +286,41 @@ public class ClientPacketProcessor {
 				this.internalHandler.sendPacketById(this.gatewayId.getString(), this.packetFactory.createMessageForwarding(payload));
 			}
 		}
+	}
+
+	private void retryClientGroupChatCreationRequest(Packet packet) {
+		ServiceResponse serviceResponse = this.chatService.saveChatGroup(packet.getPayload());
+		var chatId = serviceResponse.payload();
+		JSONObject responsePayload = isNull(chatId) ? null : new JSONObject(Map.of("chatId", chatId));
+		var responsePacket = this.packetFactory.createGenericClientResponse(serviceResponse.status(), PayloadType.GROUP_CHAT_CREATION, responsePayload, serviceResponse.message());
+		this.externalHandler.sendPacketById(packet.getId(), responsePacket);
+	}
+
+	private void retryClientGroupChatAdditionRequest(Packet packet) {
+		ServiceResponse serviceResponse = this.chatService.addToChatGroup(packet.getPayload());
+		this.externalHandler.sendPacketById(packet.getId(), this.packetFactory.createGroupChatAdditionResponse(serviceResponse.status(), serviceResponse.message()));
+	}
+
+	private void retryClientMessage(Packet packet) {
+		JSONObject payload = packet.getPayload();
+
+		String clientId = packet.getId();
+		Long senderId = payload.getLong("userId");
+
+		ServiceResponse messageServiceResponse = this.messageService.saveMessage(payload);
+
+		if ((messageServiceResponse.status() == Status.VALIDATION_ERROR) || (messageServiceResponse.status() == Status.ERROR) ) {
+			this.externalHandler.sendPacketById(clientId, this.packetFactory.createErrorResponse(PayloadType.MESSAGE, messageServiceResponse.message()));
+			return;
+		}
+
+		ServiceResponse userServiceResponse = this.userService.loadUsersIdsFromChat(payload);
+		if (userServiceResponse.status() == Status.ERROR) {
+			this.externalHandler.sendPacketById(clientId, this.packetFactory.createErrorResponse(PayloadType.MESSAGE, userServiceResponse.message()));
+			return;
+		}
+
+		this.broadCastClientMessage((List<Long>) userServiceResponse.payload(), senderId, payload);
 	}
 
 }

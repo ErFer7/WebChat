@@ -31,7 +31,7 @@ public class MessageService {
 		ValidationMessage validationMessage = this.messageValidator.validate(messageDto);
 
 		if (!validationMessage.isValid()) {
-			return new ServiceResponse(Status.ERROR, validationMessage.message(), null);
+			return new ServiceResponse(Status.VALIDATION_ERROR, validationMessage.message(), null);
 		}
 
 		EntityManager em = EntityManagerProvider.getEntityManager();
