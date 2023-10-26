@@ -22,7 +22,7 @@ public class UserService {
 
 		ValidationMessage validationMessage = this.authorizationValidator.validateUserInChat(userId, chatId);
 		if (!validationMessage.isValid()) {
-			return new ServiceResponse(Status.ERROR, validationMessage.message(), null);
+			return new ServiceResponse(Status.VALIDATION_ERROR, validationMessage.message(), null);
 		}
 
 		return new ServiceResponse(Status.OK, null, this.userIdsByChatIdQueryCommand.execute(chatId));

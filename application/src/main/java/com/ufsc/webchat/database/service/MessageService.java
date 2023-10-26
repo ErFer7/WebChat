@@ -5,6 +5,8 @@ import org.json.JSONObject;
 import com.ufsc.webchat.database.EntityManagerProvider;
 import com.ufsc.webchat.database.command.MessageListByChatIdQueryCommand;
 import com.ufsc.webchat.database.command.MessageSaveCommand;
+import com.ufsc.webchat.database.command.UserNameByUserIdQueryCommand;
+import com.ufsc.webchat.database.model.Message;
 import com.ufsc.webchat.database.model.MessageCreateDto;
 import com.ufsc.webchat.database.validator.AuthorizationValidator;
 import com.ufsc.webchat.database.validator.MessageValidator;
@@ -19,14 +21,16 @@ public class MessageService {
 
 	private final MessageSaveCommand messageSaveCommand = new MessageSaveCommand();
 	private final MessageListByChatIdQueryCommand messageListByChatIdQueryCommand = new MessageListByChatIdQueryCommand();
+	private final UserNameByUserIdQueryCommand userNameByUserIdQueryCommand = new UserNameByUserIdQueryCommand();
 	private final MessageValidator messageValidator = new MessageValidator();
 	private final AuthorizationValidator authorizationValidator = new AuthorizationValidator();
 
 	public ServiceResponse saveMessage(JSONObject payload) {
+		var senderId = payload.getLong("userId");
 		var messageDto = new MessageCreateDto();
 		messageDto.setMessage(payload.getString("message"));
 		messageDto.setChatId(payload.getLong("chatId"));
-		messageDto.setSenderId(payload.getLong("userId"));
+		messageDto.setSenderId(senderId);
 
 		ValidationMessage validationMessage = this.messageValidator.validate(messageDto);
 
@@ -38,9 +42,13 @@ public class MessageService {
 		try (em) {
 			EntityTransaction transaction = em.getTransaction();
 			transaction.begin();
-			Long messageId = this.messageSaveCommand.execute(messageDto, em);
+			Message message = this.messageSaveCommand.execute(messageDto, em);
 			transaction.commit();
-			return new ServiceResponse(Status.CREATED, null, messageId);
+
+			messageDto.setSentAt(message.getSentAt());
+			messageDto.setId(message.getId());
+			messageDto.setSenderUsername(this.userNameByUserIdQueryCommand.execute(senderId));
+			return new ServiceResponse(Status.CREATED, null, messageDto);
 		} catch (Exception e) {
 			em.getTransaction().rollback();
 			return new ServiceResponse(Status.ERROR, "Erro ao salvar mensagem no banco de dados!", null);
