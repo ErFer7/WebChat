@@ -12,19 +12,19 @@ public class ExternalHandler extends Handler {
 	@Override
 	public void readPacket(Packet packet) {
 		if (packet.getHostType() == HostType.CLIENT) {
-			((ManagerThread) this.managerThread).processClientPackets(packet);
+			((ManagerImpl) this.managerThread).processClientPackets(packet);
 		}
 	}
 
 	@Override protected void sessionReady(IWebSocketSession session) {
 		super.sessionReady(session);
 
-		((ManagerThread) this.managerThread).sendClientHandshakeInfo(session);
+		((ManagerImpl) this.managerThread).sendClientHandshakeInfo(session);
 	}
 
 	@Override protected void sessionClosed(IWebSocketSession session) {
 		if (this.sessions.getIdByName(session.getName()) != null) {
-			((ManagerThread) this.managerThread).sendGatewayClientDisconnectionRequest(this.sessions.getIdByName(session.getName()));
+			((ManagerImpl) this.managerThread).sendGatewayClientDisconnectionRequest(this.sessions.getIdByName(session.getName()));
 		}
 
 		super.sessionClosed(session);

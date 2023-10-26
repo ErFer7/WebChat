@@ -14,7 +14,7 @@ import MessageSection from './components/MessageSection'
 import { UserList } from './components/UserList'
 
 function HomePage() {
-  const { isAuthenticated, applicationConnectionInfo, logout } = useAuth() // pegar infos dessa hook
+  const { isAuthenticated, applicationConnectionInfo, logout, clientId } = useAuth() // pegar infos dessa hook
   const { sendJsonMessage, lastJsonMessage } = useWebSocket(
     `ws:/${applicationConnectionInfo?.applicationHost}`,
     {
@@ -24,9 +24,6 @@ function HomePage() {
     isAuthenticated
   )
 
-  const [appHandshakeInfo, setAppHandshakeInfo] = useState({})
-  const [handshaked, setHandkshaked] = useState(false)
-
   const [chatList, setChatList] = useState()
   const [userList, setUserList] = useState()
   const [tabValue, setTableValue] = useState('chatList')
@@ -35,15 +32,16 @@ function HomePage() {
   const [selectedChatId, setSelectedChatId] = useState()
   const [messages, setMessages] = useState([])
 
-  const chatName = chatList?.find((chat) => chat.id == selectedChatId)?.name
+  const chatName = chatList?.find((chat) => chat.id == selectedChatId)?.name // tentar pegar do back
 
   const loggedUsername = useMemo(
     () => userList?.find((user) => user.id == applicationConnectionInfo.userId).username,
-    [userList, applicationConnectionInfo]
+    [userList, applicationConnectionInfo] // tentar pegar do back
   )
 
   const commonRequestPacket = useMemo(() => {
     return {
+      id: clientId,
       hostType: 'CLIENT',
       token: applicationConnectionInfo.token,
       status: null,
@@ -52,53 +50,40 @@ function HomePage() {
         userId: applicationConnectionInfo.userId,
       },
     }
-  }, [applicationConnectionInfo])
-
-  const commonConnectedRequestPacket = useMemo(() => {
-    return {
-      ...commonRequestPacket,
-      id: appHandshakeInfo.id,
-      operationType: 'REQUEST',
-    }
-  }, [appHandshakeInfo, commonRequestPacket])
+  }, [applicationConnectionInfo, clientId])
 
   const handleChangeTab = (event, newValue) => {
     setTableValue(newValue)
   }
 
-  const handleCreateGroup = (model) => {
-    const createGroupPacket = {
-      ...commonConnectedRequestPacket,
+  const handleCreateGroup = (model) =>
+    sendJsonMessage({
+      ...commonRequestPacket,
       payloadType: 'GROUP_CHAT_CREATION',
       payload: {
-        userId: applicationConnectionInfo.userId,
+        ...commonRequestPacket.payload,
         groupName: model.groupName,
         membersUsernames: model.usernames,
       },
-    }
-    sendJsonMessage(createGroupPacket)
-  }
+    })
 
-  const handleClickUser = (username) => {
-    const getChatIdPacket = {
-      ...commonConnectedRequestPacket,
+  const handleClickUser = (username) =>
+    sendJsonMessage({
+      ...commonRequestPacket,
       payloadType: 'GET_USER_CHAT_ID',
-      payload: { userId: applicationConnectionInfo.userId, targetUsername: username },
-    }
-    sendJsonMessage(getChatIdPacket)
-  }
+      payload: { ...commonRequestPacket.payload, targetUsername: username },
+    })
 
   const handleSendMessage = (message) => {
-    const sendMessagePacket = {
-      ...commonConnectedRequestPacket,
+    sendJsonMessage({
+      ...commonRequestPacket,
       payloadType: 'MESSAGE',
       payload: {
+        ...commonRequestPacket.payload,
         chatId: selectedChatId,
-        userId: applicationConnectionInfo.userId,
         message: message,
       },
-    }
-    sendJsonMessage(sendMessagePacket)
+    })
     setMessages(
       messages.concat({
         senderId: applicationConnectionInfo.userId,
@@ -111,83 +96,98 @@ function HomePage() {
   const handleSetSelectChatId = useCallback(
     (chatId) => {
       setSelectedChatId(chatId)
-      const sendMessageListPacket = {
-        ...commonConnectedRequestPacket,
+      sendJsonMessage({
+        ...commonRequestPacket,
         payloadType: 'MESSAGE_LISTING',
         payload: {
+          ...commonRequestPacket.payload,
           chatId: chatId,
-          userId: applicationConnectionInfo.userId,
         },
-      }
-      sendJsonMessage(sendMessageListPacket)
+      })
     },
-    [commonConnectedRequestPacket, applicationConnectionInfo.userId, sendJsonMessage]
+    [sendJsonMessage, commonRequestPacket]
+  )
+
+  const fetchChats = useCallback(
+    () => sendJsonMessage({ ...commonRequestPacket, payloadType: 'CHAT_LISTING' }),
+    [sendJsonMessage, commonRequestPacket]
+  )
+  const fetchUsers = useCallback(
+    () => sendJsonMessage({ ...commonRequestPacket, payloadType: 'USER_LISTING' }),
+    [sendJsonMessage, commonRequestPacket]
+  )
+  const connect = useCallback(
+    (host) =>
+      sendJsonMessage({
+        ...commonRequestPacket,
+        payloadType: 'CLIENT_CONNECTION',
+        payload: {
+          ...commonRequestPacket.payload,
+          host: host,
+        },
+      }),
+    [sendJsonMessage, commonRequestPacket]
   )
 
   useEffect(() => {
-    if (lastJsonMessage) {
-      const data = lastJsonMessage
-      if (data?.operationType == 'INFO' && data?.payloadType == 'HOST' && !handshaked) {
-        setAppHandshakeInfo({ host: data?.payload?.host, id: data.id }) // Vai causar 1 retrigger, então vou controlar com handshaked
-        if (isAuthenticated) {
-          const connectionPacket = {
-            ...commonRequestPacket,
-            id: data?.id,
-            payloadType: 'CLIENT_CONNECTION',
-            payload: {
-              ...commonRequestPacket.payload,
-              host: data?.payload?.host,
-            },
-          }
-          sendJsonMessage(connectionPacket)
-          setHandkshaked(true)
-        }
-      } else if (data?.payloadType == 'CLIENT_CONNECTION' && data?.status == 'OK') {
-        // conectado, vou começar a requisitar as coisas da tela...
-        sendJsonMessage({ ...commonConnectedRequestPacket, payloadType: 'CHAT_LISTING' })
-        sendJsonMessage({ ...commonConnectedRequestPacket, payloadType: 'USER_LISTING' })
-      } else if (data?.payloadType == 'USER_LISTING' && data?.status == 'OK') {
-        const newUserList = data?.payload?.users
-        setUserList(newUserList)
-      } else if (data?.payloadType == 'CHAT_LISTING' && data?.status == 'OK') {
-        setChatList(data?.payload?.chats)
-      } else if (data?.payloadType == 'GROUP_CHAT_CREATION') {
-        if (data?.status == 'CREATED') {
-          setCreateGroupAlert({ severity: 'success', message: 'Grupo criado com sucesso!' })
-          setGroupForm({ groupName: '', usernames: [] })
-          sendJsonMessage({ ...commonConnectedRequestPacket, payloadType: 'CHAT_LISTING' }) // reload chat list
-        } else if (data?.status == 'ERROR') {
-          setCreateGroupAlert({ severity: 'error', message: data?.payload?.message })
-        }
-      } else if (data?.payloadType == 'GET_USER_CHAT_ID') {
-        data?.payload?.chatId && handleSetSelectChatId(data?.payload?.chatId)
+    const data = lastJsonMessage
+    if (lastJsonMessage && isAuthenticated) {
+      switch (data?.payloadType) {
+        case 'HOST':
+          data?.operationType == 'INFO' && connect(data?.payload?.host)
 
-        if (data?.status == 'CREATED') {
-          sendJsonMessage({ ...commonConnectedRequestPacket, payloadType: 'CHAT_LISTING' }) // reload chat list
-        }
-      } else if (data?.payloadType == 'MESSAGE_LISTING' && data?.status == 'OK') {
-        setMessages(data?.payload?.messages)
-      } else if (data?.payloadType == 'MESSAGE' && data?.status == 'OK') {
-        setMessages((prevState) =>
-          prevState.concat({
-            senderId: data?.payload?.userId, // pegar username
-            message: data?.payload?.message,
-            sentAt: new Date().toISOString(), // pegar data do servidor
-          })
-        )
+          break
+        case 'CLIENT_CONNECTION':
+          if (data?.status == 'OK') {
+            fetchChats()
+            fetchUsers()
+          }
+
+          break
+        case 'USER_LISTING':
+          data?.status == 'OK' && setUserList(data?.payload?.users)
+
+          break
+        case 'CHAT_LISTING':
+          data?.status == 'OK' && setChatList(data?.payload?.chats)
+
+          break
+        case 'GROUP_CHAT_CREATION':
+          if (data?.status == 'CREATED') {
+            setCreateGroupAlert({ severity: 'success', message: 'Grupo criado com sucesso!' })
+            setGroupForm({ groupName: '', usernames: [] })
+            fetchChats()
+          } else if (data?.status == 'ERROR') {
+            setCreateGroupAlert({ severity: 'error', message: data?.payload?.message })
+          }
+
+          break
+        case 'GET_USER_CHAT_ID':
+          data?.payload?.chatId && handleSetSelectChatId(data?.payload?.chatId)
+          data?.status == 'CREATED' && fetchChats()
+
+          break
+        case 'MESSAGE_LISTING':
+          data?.status == 'OK' && setMessages(data?.payload?.messages)
+
+          break
+        case 'MESSAGE':
+          data?.status == 'OK' &&
+            setMessages((prevState) =>
+              prevState.concat({
+                senderId: data?.payload?.userId, // pegar username
+                message: data?.payload?.message,
+                sentAt: new Date().toISOString(), // pegar data do servidor
+              })
+            )
+
+          break
+        default:
+          break
       }
       console.log(data)
     }
-  }, [
-    lastJsonMessage,
-    sendJsonMessage,
-    isAuthenticated,
-    handshaked,
-    commonConnectedRequestPacket,
-    commonRequestPacket,
-    logout,
-    handleSetSelectChatId,
-  ])
+  }, [lastJsonMessage, isAuthenticated, connect, handleSetSelectChatId, fetchChats, fetchUsers, clientId])
 
   return isAuthenticated ? (
     <div>

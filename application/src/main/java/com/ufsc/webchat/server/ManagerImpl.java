@@ -18,7 +18,7 @@ import com.ufsc.webchat.protocol.enums.HostType;
 import com.ufsc.webchat.utils.SharedString;
 import com.ufsc.webchat.utils.UserContextMap;
 
-public class ManagerThread implements Manager {
+public class ManagerImpl implements Manager {
 
 	private final String id;
 	private final ExternalHandler externalHandler;
@@ -28,9 +28,9 @@ public class ManagerThread implements Manager {
 	private final PacketFactory packetFactory;
 	private final GatewayPacketProcessor gatewayPacketProcessor;
 	private final ClientPacketProcessor clientPacketProcessor;
-	private static final Logger logger = LoggerFactory.getLogger(ManagerThread.class);
+	private static final Logger logger = LoggerFactory.getLogger(ManagerImpl.class);
 
-	public ManagerThread(ExternalHandler serverHandler, InternalHandler clientHandler) {
+	public ManagerImpl(ExternalHandler serverHandler, InternalHandler clientHandler) {
 		this.id = randomUUID().toString();
 		this.externalHandler = serverHandler;
 		this.internalHandler = clientHandler;
