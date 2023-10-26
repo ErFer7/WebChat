@@ -89,6 +89,7 @@ function HomePage() {
         senderId: applicationConnectionInfo.userId,
         message: message,
         sentAt: new Date().toISOString(),
+        senderUsername: loggedUsername,
       })
     )
   }
@@ -172,12 +173,14 @@ function HomePage() {
 
           break
         case 'MESSAGE':
+          // PRECISO DO CHATID TAMBÉM PRA SÓ CONCATENAR SE ESTIVER NO CHAT CERTO. se não notifiy
           data?.status == 'OK' &&
             setMessages((prevState) =>
               prevState.concat({
-                senderId: data?.payload?.userId, // pegar username
+                senderId: data?.payload?.userId,
+                senderUsername: data?.payload?.senderUsername,
                 message: data?.payload?.message,
-                sentAt: new Date().toISOString(), // pegar data do servidor
+                sentAt: data?.payload?.sentAt,
               })
             )
 
@@ -252,7 +255,12 @@ function HomePage() {
           </Grid>
           <Grid item xs={9}>
             {selectedChatId && (
-              <MessageSection messages={messages} chatName={chatName} handleSendMessage={handleSendMessage} />
+              <MessageSection
+                messages={messages}
+                chatName={chatName}
+                handleSendMessage={handleSendMessage}
+                selfUserId={applicationConnectionInfo.userId}
+              />
             )}
           </Grid>
         </Grid>
