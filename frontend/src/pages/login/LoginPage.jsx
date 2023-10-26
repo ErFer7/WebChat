@@ -18,7 +18,7 @@ import useWebSocket from 'react-use-websocket'
 import { useAuth } from '../../hooks/useAuth'
 
 function LoginPage() {
-  const { isAuthenticated, login } = useAuth()
+  const { isAuthenticated, login, clientId } = useAuth()
   const { sendJsonMessage, lastJsonMessage } = useWebSocket(
     'ws://127.0.0.1:8080',
     {
@@ -31,11 +31,11 @@ function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const [gatewayConnectionInfo, setGatewayConnectionInfo] = useState({})
+  const [selfHost, setSelfHost] = useState()
   const [alert, setAlert] = useState()
 
   const commonRequestPacketProps = {
-    id: gatewayConnectionInfo.id,
+    id: clientId,
     hostType: 'CLIENT',
     token: null,
     status: null,
@@ -43,7 +43,7 @@ function LoginPage() {
     payload: {
       username: username,
       password: password,
-      host: gatewayConnectionInfo.host,
+      host: selfHost,
     },
   }
 
@@ -74,10 +74,7 @@ function LoginPage() {
     if (lastJsonMessage) {
       const data = lastJsonMessage
       if (data?.operationType == 'INFO' && data?.payloadType == 'HOST') {
-        setGatewayConnectionInfo({
-          id: data?.id,
-          host: data?.payload.host,
-        })
+        setSelfHost(data?.payload.host)
       } else if (data?.payloadType == 'ROUTING') {
         if (data?.status == 'OK') {
           login(data)

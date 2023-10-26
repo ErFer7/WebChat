@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.ufsc.webchat.database.model.ChatDto;
+import com.ufsc.webchat.database.model.MessageCreateDto;
 import com.ufsc.webchat.database.service.ChatService;
 import com.ufsc.webchat.database.service.MessageService;
 import com.ufsc.webchat.database.service.UserService;
@@ -62,10 +63,10 @@ public class ClientPacketProcessor {
 
 	public void tryAgain(Packet packet) {
 		switch (packet.getPayloadType()) {
-			case GROUP_CHAT_CREATION -> this.retryClientGroupChatCreationRequest(packet);
-			case GROUP_CHAT_ADDITION -> this.retryClientGroupChatAdditionRequest(packet);
-			case MESSAGE -> this.retryClientMessage(packet);
-			default -> logger.warn("Unexpected packet type in retry: {}", packet.getPayloadType());
+		case GROUP_CHAT_CREATION -> this.retryClientGroupChatCreationRequest(packet);
+		case GROUP_CHAT_ADDITION -> this.retryClientGroupChatAdditionRequest(packet);
+		case MESSAGE -> this.retryClientMessage(packet);
+		default -> logger.warn("Unexpected packet type in retry: {}", packet.getPayloadType());
 		}
 	}
 
@@ -210,23 +211,24 @@ public class ClientPacketProcessor {
 		Long senderId = payload.getLong("userId");
 
 		ServiceResponse messageServiceResponse = this.messageService.saveMessage(payload);
-
 		if (messageServiceResponse.status() == Status.ERROR) {
 			Retry.launch(packet, this);
 			return;
-		}
-
-		if (messageServiceResponse.status() == Status.VALIDATION_ERROR) {
+		} else if (messageServiceResponse.status() == Status.VALIDATION_ERROR) {
 			this.externalHandler.sendPacketById(clientId, this.packetFactory.createErrorResponse(PayloadType.MESSAGE, messageServiceResponse.message()));
 			return;
 		}
+
 		ServiceResponse userServiceResponse = this.userService.loadUsersIdsFromChat(payload);
-		if (userServiceResponse.status() == Status.ERROR) {
+		if (userServiceResponse.status() == Status.VALIDATION_ERROR) {
 			this.externalHandler.sendPacketById(clientId, this.packetFactory.createErrorResponse(PayloadType.MESSAGE, userServiceResponse.message()));
 			return;
 		}
+		MessageCreateDto messageCreateDto = (MessageCreateDto) messageServiceResponse.payload();
+		payload.put("senderUsername", messageCreateDto.getSenderUsername());
+		payload.put("sentAt", messageCreateDto.getSentAt());
 
-		this.externalHandler.sendPacketById(clientId, this.packetFactory.createOkResponse(PayloadType.MESSAGE, "Mensagem enviada com sucesso"));
+		this.externalHandler.sendPacketById(clientId, this.packetFactory.createOkResponse(PayloadType.MESSAGE_FEEDBACK, "Mensagem enviada com sucesso"));
 		this.broadCastClientMessage((List<Long>) userServiceResponse.payload(), senderId, payload);
 	}
 
@@ -308,17 +310,20 @@ public class ClientPacketProcessor {
 		Long senderId = payload.getLong("userId");
 
 		ServiceResponse messageServiceResponse = this.messageService.saveMessage(payload);
-
-		if ((messageServiceResponse.status() == Status.VALIDATION_ERROR) || (messageServiceResponse.status() == Status.ERROR) ) {
+		if ((messageServiceResponse.status() == Status.VALIDATION_ERROR) || (messageServiceResponse.status() == Status.ERROR)) {
 			this.externalHandler.sendPacketById(clientId, this.packetFactory.createErrorResponse(PayloadType.MESSAGE, messageServiceResponse.message()));
 			return;
 		}
 
 		ServiceResponse userServiceResponse = this.userService.loadUsersIdsFromChat(payload);
-		if (userServiceResponse.status() == Status.ERROR) {
+		if (userServiceResponse.status() == Status.VALIDATION_ERROR) {
 			this.externalHandler.sendPacketById(clientId, this.packetFactory.createErrorResponse(PayloadType.MESSAGE, userServiceResponse.message()));
 			return;
 		}
+
+		MessageCreateDto messageCreateDto = (MessageCreateDto) messageServiceResponse.payload();
+		payload.put("senderUsername", messageCreateDto.getSenderUsername());
+		payload.put("sentAt", messageCreateDto.getSentAt());
 
 		this.broadCastClientMessage((List<Long>) userServiceResponse.payload(), senderId, payload);
 	}

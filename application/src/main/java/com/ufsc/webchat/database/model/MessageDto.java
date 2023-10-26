@@ -7,12 +7,14 @@ public class MessageDto {
 	private Long senderId;
 	private String message;
 	private Instant sentAt;
+	private String senderUsername;
 
-	public MessageDto(Long id, Long senderId, String message, Instant sentAt) {
+	public MessageDto(Long id, Long senderId, String message, Instant sentAt, String senderUsername) {
 		this.id = id;
 		this.senderId = senderId;
 		this.message = message;
 		this.sentAt = sentAt;
+		this.senderUsername = senderUsername;
 	}
 
 	public Long getId() {
@@ -45,5 +47,13 @@ public class MessageDto {
 
 	public void setSentAt(Instant sentAt) {
 		this.sentAt = sentAt;
+	}
+
+	public String getSenderUsername() {
+		return this.senderUsername;
+	}
+
+	public void setSenderUsername(String senderUsername) {
+		this.senderUsername = senderUsername;
 	}
 }

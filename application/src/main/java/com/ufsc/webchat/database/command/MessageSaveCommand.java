@@ -9,7 +9,7 @@ import jakarta.persistence.EntityManager;
 
 public class MessageSaveCommand {
 
-	public Long execute(MessageCreateDto messageCreateDto, EntityManager em) {
+	public Message execute(MessageCreateDto messageCreateDto, EntityManager em) {
 		Message message = new Message();
 		message.setChatId(messageCreateDto.getChatId());
 		message.setText(messageCreateDto.getMessage());
@@ -17,7 +17,7 @@ public class MessageSaveCommand {
 		message.setSentAt(Instant.now());
 
 		em.persist(message);
-		return message.getId();
+		return message;
 	}
 
 }

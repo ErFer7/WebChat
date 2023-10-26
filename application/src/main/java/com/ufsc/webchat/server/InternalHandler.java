@@ -43,7 +43,7 @@ public class InternalHandler extends Handler {
 	@Override
 	public void readPacket(Packet packet) {
 		if (packet.getHostType() == HostType.GATEWAY) {
-			((ManagerThread) this.managerThread).processGatewayPackets(packet);
+			((ManagerImpl) this.managerThread).processGatewayPackets(packet);
 		}
 	}
 

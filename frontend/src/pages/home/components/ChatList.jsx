@@ -5,7 +5,6 @@ import PropTypes from 'prop-types'
 export function ChatList({ chats, selectedChatId, setSelectedChatId }) {
   const handleListItemClick = (event, index) => {
     setSelectedChatId(index)
-    console.log(index)
   }
 
   return (
