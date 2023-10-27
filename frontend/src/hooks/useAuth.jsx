@@ -11,18 +11,14 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(
     (data) => {
-      const payload = data?.payload
-      setApplicationConnectInfo({
-        userId: payload?.userId,
-        token: payload?.token,
-        applicationHost: payload?.applicationHost,
-      })
+      console.log(data)
+      setApplicationConnectInfo(data)
       setIsAuthenticated(true)
 
-      localStorage.setItem('token', payload?.token)
-      localStorage.setItem('applicationHost', payload?.applicationHost)
+      localStorage.setItem('token', data.token)
+      localStorage.setItem('applicationHost', data.applicationHost)
+      localStorage.setItem('userId', data.userId)
       localStorage.setItem('clientId', clientId)
-      localStorage.setItem('userId', payload?.userId)
     },
     [clientId]
   )
@@ -30,8 +26,8 @@ export function AuthProvider({ children }) {
   const logout = useCallback(() => {
     localStorage.removeItem('token')
     localStorage.removeItem('applicationHost')
-    localStorage.removeItem('clientId')
     localStorage.removeItem('userId')
+    localStorage.removeItem('clientId')
     setIsAuthenticated(false)
   }, [])
 

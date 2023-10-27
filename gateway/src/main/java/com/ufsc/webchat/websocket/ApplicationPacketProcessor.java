@@ -1,4 +1,4 @@
-package com.ufsc.webchat.server;
+package com.ufsc.webchat.websocket;
 
 import static java.lang.System.getProperty;
 import static java.util.Objects.isNull;
@@ -10,13 +10,14 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.ufsc.webchat.model.RoutingResponseDto;
 import com.ufsc.webchat.protocol.JSONValidator;
 import com.ufsc.webchat.protocol.Packet;
 import com.ufsc.webchat.protocol.PacketFactory;
 import com.ufsc.webchat.protocol.enums.OperationType;
 import com.ufsc.webchat.protocol.enums.PayloadType;
 import com.ufsc.webchat.protocol.enums.Status;
-import com.ufsc.webchat.utils.ApplicationContextMap;
+import com.ufsc.webchat.websocket.utils.ApplicationContextMap;
 
 public class ApplicationPacketProcessor {
 
@@ -100,39 +101,31 @@ public class ApplicationPacketProcessor {
 
 	public void receiveApplicationClientRoutingResponse(Packet packet) {
 		JSONObject payload = packet.getPayload();
-
 		var missingFields = JSONValidator.validate(payload, List.of("userId", "token"));
 		if (!missingFields.isEmpty()) {
 			logger.error("Invalid payload");
-			this.packetFactory.createErrorResponse(PayloadType.ROUTING, "Falha no roteamento");
-			return;
+			return; // Request do client nunca seria completa, botar um TIMEOUT lá?
 		}
-
 		String applicationId = packet.getId();
 		Long userId = payload.getLong("userId");
-		String userHost = this.userIdClientIdMap.remove(userId);
+		String clientId = this.userIdClientIdMap.remove(userId);
 
 		// Verificação de autenticação do servidor de aplicação
 		if (!this.authenticate(packet, PayloadType.ROUTING)) {
-			// Avisa o cliente que o servidor de aplicação não está autenticado e a operação foi cancelada
-			var responsePacket = this.packetFactory.createErrorResponse(PayloadType.ROUTING, "Falha no roteamento");
-			this.serverHandler.sendPacketById(userHost, responsePacket);
+			this.serverHandler.completeClientLoginRequest(clientId, new RoutingResponseDto(Status.ERROR));
 			return;
 		}
 
 		if (packet.getStatus() == Status.OK) {
 			this.userIdApplicationIdMap.put(userId, applicationId);
-			this.serverHandler.sendPacketById(userHost, this.packetFactory.createGatewayClientRoutingResponse(
+			this.serverHandler.completeClientLoginRequest(clientId, new RoutingResponseDto(
 					Status.OK,
-					userId,
 					payload.getString("token"),
-					applicationId,
-					this.applicationContextMap.getExternalHost(applicationId)
-			));
+					userId,
+					this.applicationContextMap.getExternalHost(applicationId)));
 		} else {
 			logger.warn("Application routing failed");
-			var responsePacket = this.packetFactory.createErrorResponse(PayloadType.ROUTING, "Falha no roteamento");
-			this.serverHandler.sendPacketById(userHost, responsePacket);
+			this.serverHandler.completeClientLoginRequest(clientId, new RoutingResponseDto(Status.ERROR));
 		}
 	}
 
@@ -175,7 +168,6 @@ public class ApplicationPacketProcessor {
 		}
 
 		Long targetUserId = payload.getLong("targetUserId");
-
 		String targetApplicationId = this.userIdApplicationIdMap.get(targetUserId);
 
 		Packet responsePacket;

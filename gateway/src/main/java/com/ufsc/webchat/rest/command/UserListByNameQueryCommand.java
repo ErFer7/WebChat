@@ -1,4 +1,4 @@
-package com.ufsc.webchat.database.command;
+package com.ufsc.webchat.rest.command;
 
 import static com.ufsc.webchat.database.model.QUser.user;
 

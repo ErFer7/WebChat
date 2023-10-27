@@ -1,4 +1,4 @@
-package com.ufsc.webchat.database.model;
+package com.ufsc.webchat.rest.model;
 
 public class UserInfoDto {
 

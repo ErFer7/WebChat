@@ -1,11 +1,11 @@
-package com.ufsc.webchat.database.command;
+package com.ufsc.webchat.rest.command;
 
 import static com.ufsc.webchat.database.model.QUser.user;
 
 import com.querydsl.core.types.Projections;
 import com.ufsc.webchat.database.EntityManagerProvider;
 import com.ufsc.webchat.database.JPAQueryFactory;
-import com.ufsc.webchat.database.model.UserInfoDto;
+import com.ufsc.webchat.rest.model.UserInfoDto;
 
 public class UserInfoDtoByUserNameQueryCommand {
 

@@ -173,16 +173,17 @@ function HomePage() {
 
           break
         case 'MESSAGE':
-          // PRECISO DO CHATID TAMBÉM PRA SÓ CONCATENAR SE ESTIVER NO CHAT CERTO. se não notifiy
-          data?.status == 'OK' &&
-            setMessages((prevState) =>
-              prevState.concat({
-                senderId: data?.payload?.userId,
-                senderUsername: data?.payload?.senderUsername,
-                message: data?.payload?.message,
-                sentAt: data?.payload?.sentAt,
-              })
-            )
+          if (data?.status == 'OK') {
+            data?.payload?.chatId == selectedChatId &&
+              setMessages((prevState) =>
+                prevState.concat({
+                  senderId: data?.payload?.userId,
+                  senderUsername: data?.payload?.senderUsername,
+                  message: data?.payload?.message,
+                  sentAt: data?.payload?.sentAt,
+                })
+              ) // Posso mandar um feedback sobre os outros chats.
+          }
 
           break
         default:
@@ -191,6 +192,7 @@ function HomePage() {
       console.log(data)
     }
   }, [lastJsonMessage, isAuthenticated, connect, handleSetSelectChatId, fetchChats, fetchUsers, clientId])
+  // Não vou colocar selectedChatId aqui, pois não quero que ele atualize a cada mudança de chat (com tempo, avaliar)
 
   return isAuthenticated ? (
     <div>

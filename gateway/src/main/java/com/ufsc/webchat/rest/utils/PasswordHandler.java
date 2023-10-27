@@ -1,4 +1,4 @@
-package com.ufsc.webchat.server;
+package com.ufsc.webchat.rest.utils;
 
 import org.mindrot.jbcrypt.BCrypt;
 

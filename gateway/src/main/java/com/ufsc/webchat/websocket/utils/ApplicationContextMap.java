@@ -1,4 +1,4 @@
-package com.ufsc.webchat.utils;
+package com.ufsc.webchat.websocket.utils;
 
 import static java.util.Objects.isNull;
 
