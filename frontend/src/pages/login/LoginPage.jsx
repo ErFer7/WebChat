@@ -12,40 +12,17 @@ import {
   Typography,
 } from '@mui/material'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import useWebSocket from 'react-use-websocket'
 import { useAuth } from '../../hooks/useAuth'
+import { gatewayLogin, gatewayRegister } from './ClientService'
 
-function LoginPage() {
+export default function LoginPage() {
   const { isAuthenticated, login, clientId } = useAuth()
-  const { sendJsonMessage, lastJsonMessage } = useWebSocket(
-    'ws://127.0.0.1:8080',
-    {
-      onOpen: () => console.log(`Connected to App WS`),
-      onClose: () => console.log('Connection Closed'),
-    },
-    !isAuthenticated
-  )
-
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const [selfHost, setSelfHost] = useState()
   const [alert, setAlert] = useState()
-
-  const commonRequestPacketProps = {
-    id: clientId,
-    hostType: 'CLIENT',
-    token: null,
-    status: null,
-    operationType: 'REQUEST',
-    payload: {
-      username: username,
-      password: password,
-      host: selfHost,
-    },
-  }
 
   const handleUsernameChange = (event) => {
     setUsername(event.target.value)
@@ -56,43 +33,31 @@ function LoginPage() {
     alert && setAlert(null)
   }
 
+  const handleLogin = () => {
+    gatewayLogin({ clientId, username, password })
+      .then((response) => login(response.data))
+      .catch((error) => setAlert({ severity: 'error', message: error.response.data }))
+      .finally(() => setLoading(false))
+  }
+
+  const handleRegister = () => {
+    gatewayRegister({ clientId, username, password })
+      .then((data) => data.status == '201' && setAlert({ severity: 'success', message: 'Usuário criado com sucesso!' }))
+      .catch((error) => setAlert({ severity: 'error', message: error.response.data }))
+      .finally(() => setLoading(false))
+  }
+
   const handleSubmit = (event) => {
     event.preventDefault()
     const buttonName = event.nativeEvent.submitter.name
     if (buttonName == 'login') {
-      const loginPacket = { ...commonRequestPacketProps, payloadType: 'ROUTING' }
       setLoading(true)
-      sendJsonMessage(loginPacket)
+      handleLogin()
     } else if (buttonName == 'register') {
-      const registerPacket = { ...commonRequestPacketProps, payloadType: 'USER_CREATION' }
+      handleRegister()
       setLoading(true)
-      sendJsonMessage(registerPacket)
     }
   }
-
-  useEffect(() => {
-    if (lastJsonMessage) {
-      const data = lastJsonMessage
-      if (data?.operationType == 'INFO' && data?.payloadType == 'HOST') {
-        setSelfHost(data?.payload.host)
-      } else if (data?.payloadType == 'ROUTING') {
-        if (data?.status == 'OK') {
-          login(data)
-        } else if (data?.status == 'ERROR' || data?.status == 'VALIDATION_ERROR') {
-          setAlert({ severity: 'error', message: data?.payload?.message })
-        }
-        setLoading(false)
-      } else if (data?.payloadType == 'USER_CREATION') {
-        if (data?.status == 'CREATED') {
-          setAlert({ severity: 'success', message: 'Usuário criado com sucesso!' })
-        } else if (data?.status == 'ERROR' || data?.status == 'VALIDATION_ERROR') {
-          setAlert({ severity: 'error', message: data?.payload?.message })
-        }
-        setLoading(false)
-      }
-      console.log(data)
-    }
-  }, [lastJsonMessage, login])
 
   return isAuthenticated ? (
     <Navigate to='/' />
@@ -170,5 +135,3 @@ function LoginPage() {
     </Grid>
   )
 }
-
-export default LoginPage

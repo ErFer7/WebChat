@@ -3,7 +3,7 @@ package com.ufsc.webchat;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-import com.ufsc.webchat.server.GatewayThread;
+import com.ufsc.webchat.websocket.GatewayThread;
 
 @SpringBootApplication
 public class WebChatGateway {

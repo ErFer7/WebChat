@@ -1,4 +1,4 @@
-package com.ufsc.webchat.server;
+package com.ufsc.webchat.websocket;
 
 import static java.lang.Integer.parseInt;
 
@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 
 import com.ufsc.webchat.config.PropertyLoader;
 import com.ufsc.webchat.database.EntityManagerProvider;
+import com.ufsc.webchat.server.Server;
 
 public class GatewayThread extends Thread {
 
@@ -21,12 +22,12 @@ public class GatewayThread extends Thread {
 		EntityManagerProvider.init();
 
 		this.serverHandler = new ServerHandler();
-		this.server = new Server(serverHandler);
+		this.server = new Server(this.serverHandler);
 	}
 
 	public static GatewayThread getInstance() {
 		try {
-			if(INSTANCE == null) {
+			if (INSTANCE == null) {
 				INSTANCE = new GatewayThread();
 			}
 		} catch (Exception exception) {
@@ -37,15 +38,16 @@ public class GatewayThread extends Thread {
 	}
 
 	public ServerHandler getServerHandler() {
-		return serverHandler;
+		return this.serverHandler;
 	}
 
 	@Override
 	public void run() {
 		try {
-			server.start(parseInt(System.getProperty("gatewayPort")));
+			this.server.start(parseInt(System.getProperty("gatewayPort")));
 		} catch (Exception exception) {
 			logger.error("Error while starting gateway server", exception);
 		}
 	}
+
 }

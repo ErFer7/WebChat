@@ -1,10 +1,10 @@
-package com.ufsc.webchat.database.validator;
+package com.ufsc.webchat.rest.validator;
 
 import static org.hibernate.internal.util.StringHelper.isEmpty;
 
-import com.ufsc.webchat.database.command.UserListByNameQueryCommand;
-import com.ufsc.webchat.database.model.UserDto;
 import com.ufsc.webchat.model.ValidationMessage;
+import com.ufsc.webchat.rest.command.UserListByNameQueryCommand;
+import com.ufsc.webchat.rest.model.UserDto;
 
 public class UserRegisterValidator {
 

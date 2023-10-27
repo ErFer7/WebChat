@@ -88,10 +88,10 @@ MessageSection.propTypes = {
   messages: PropTypes.arrayOf(PropTypes.object),
   chatName: PropTypes.string,
   handleSendMessage: PropTypes.func,
-  selfUserId: PropTypes.String,
+  selfUserId: PropTypes.string,
 }
 
 ChatMessage.propTypes = {
   message: PropTypes.object,
-  selfUserId: PropTypes.String,
+  selfUserId: PropTypes.string,
 }
