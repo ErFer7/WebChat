@@ -34,6 +34,7 @@ export default function LoginPage() {
   }
 
   const handleLogin = () => {
+    setLoading(true)
     gatewayLogin({ clientId, username, password })
       .then((response) => login(response.data))
       .catch((error) => setAlert({ severity: 'error', message: error.response.data }))
@@ -41,6 +42,7 @@ export default function LoginPage() {
   }
 
   const handleRegister = () => {
+    setLoading(true)
     gatewayRegister({ clientId, username, password })
       .then((data) => data.status == '201' && setAlert({ severity: 'success', message: 'Usuário criado com sucesso!' }))
       .catch((error) => setAlert({ severity: 'error', message: error.response.data }))
@@ -51,11 +53,9 @@ export default function LoginPage() {
     event.preventDefault()
     const buttonName = event.nativeEvent.submitter.name
     if (buttonName == 'login') {
-      setLoading(true)
       handleLogin()
     } else if (buttonName == 'register') {
       handleRegister()
-      setLoading(true)
     }
   }
 
