@@ -16,6 +16,7 @@ function HomePage() {
   const [groupForm, setGroupForm] = useState({ groupName: '', usernames: [] })
   const [createGroupAlert, setCreateGroupAlert] = useState()
   const [selectedChatId, setSelectedChatId] = useState()
+  const [notifyChatId, setNotifyChatId] = useState(null)
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState({ websocket: true, chats: false, users: false, messages: false })
 
@@ -66,15 +67,16 @@ function HomePage() {
 
         case 'MESSAGE':
           if (data?.status == 'OK') {
-            data?.payload?.chatId == selectedChatId &&
-              setMessages((prevState) =>
-                prevState.concat({
-                  senderId: data?.payload?.userId,
-                  senderUsername: data?.payload?.senderUsername,
-                  message: data?.payload?.message,
-                  sentAt: data?.payload?.sentAt,
-                })
-              ) // Posso mandar um feedback sobre os outros chats.
+            data?.payload?.chatId == selectedChatId
+              ? setMessages((prevState) =>
+                  prevState.concat({
+                    senderId: data?.payload?.userId,
+                    senderUsername: data?.payload?.senderUsername,
+                    message: data?.payload?.message,
+                    sentAt: data?.payload?.sentAt,
+                  })
+                )
+              : setNotifyChatId(data?.payload?.chatId)
           }
           break
 
@@ -164,6 +166,7 @@ function HomePage() {
   const handleSetSelectChatId = useCallback(
     (chatId) => {
       setSelectedChatId(chatId)
+      setNotifyChatId((prevState) => (prevState == chatId ? null : prevState))
       setLoading((prevState) => ({ ...prevState, messages: true }))
       sendJsonMessage({
         ...commonRequestPacket,
@@ -223,6 +226,7 @@ function HomePage() {
                       selectedChatId={selectedChatId}
                       setSelectedChatId={handleSetSelectChatId}
                       chatName={chatName}
+                      notifyChatId={notifyChatId}
                     />
                   </TabPanel>
                   <TabPanel value='userList' sx={{ p: 0 }} style={{ maxHeight: '80vh', overflowY: 'auto' }}>
