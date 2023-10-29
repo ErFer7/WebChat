@@ -3,7 +3,7 @@ import AddIcon from '@mui/icons-material/Add'
 import LogoutIcon from '@mui/icons-material/Logout'
 import { TabContext, TabList, TabPanel } from '@mui/lab'
 
-import { AppBar, Box, Button, Grid, IconButton, Tab, Toolbar, Typography } from '@mui/material'
+import { AppBar, Box, Button, CircularProgress, Grid, IconButton, Tab, Toolbar, Typography } from '@mui/material'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import useWebSocket from 'react-use-websocket'
@@ -31,6 +31,7 @@ function HomePage() {
   const [createGroupAlert, setCreateGroupAlert] = useState()
   const [selectedChatId, setSelectedChatId] = useState()
   const [messages, setMessages] = useState([])
+  const [loading, setLoading] = useState({ chats: false, users: false, messages: false })
 
   const chatName = chatList?.find((chat) => chat.id == selectedChatId)?.name // tentar pegar do back
 
@@ -97,6 +98,7 @@ function HomePage() {
   const handleSetSelectChatId = useCallback(
     (chatId) => {
       setSelectedChatId(chatId)
+      setLoading((prevState) => ({ ...prevState, messages: true }))
       sendJsonMessage({
         ...commonRequestPacket,
         payloadType: 'MESSAGE_LISTING',
@@ -109,14 +111,16 @@ function HomePage() {
     [sendJsonMessage, commonRequestPacket]
   )
 
-  const fetchChats = useCallback(
-    () => sendJsonMessage({ ...commonRequestPacket, payloadType: 'CHAT_LISTING' }),
-    [sendJsonMessage, commonRequestPacket]
-  )
-  const fetchUsers = useCallback(
-    () => sendJsonMessage({ ...commonRequestPacket, payloadType: 'USER_LISTING' }),
-    [sendJsonMessage, commonRequestPacket]
-  )
+  const fetchChats = useCallback(() => {
+    setLoading((prevState) => ({ ...prevState, chats: true }))
+    sendJsonMessage({ ...commonRequestPacket, payloadType: 'CHAT_LISTING' })
+  }, [sendJsonMessage, commonRequestPacket])
+
+  const fetchUsers = useCallback(() => {
+    setLoading((prevState) => ({ ...prevState, users: true }))
+    sendJsonMessage({ ...commonRequestPacket, payloadType: 'USER_LISTING' })
+  }, [sendJsonMessage, commonRequestPacket])
+
   const connect = useCallback(
     (host) =>
       sendJsonMessage({
@@ -145,12 +149,13 @@ function HomePage() {
           }
 
           break
-        case 'USER_LISTING':
-          data?.status == 'OK' && setUserList(data?.payload?.users)
-
-          break
         case 'CHAT_LISTING':
           data?.status == 'OK' && setChatList(data?.payload?.chats)
+          setLoading((prevState) => ({ ...prevState, chats: false }))
+          break
+        case 'USER_LISTING':
+          data?.status == 'OK' && setUserList(data?.payload?.users)
+          setLoading((prevState) => ({ ...prevState, users: false }))
 
           break
         case 'GROUP_CHAT_CREATION':
@@ -170,6 +175,7 @@ function HomePage() {
           break
         case 'MESSAGE_LISTING':
           data?.status == 'OK' && setMessages(data?.payload?.messages)
+          setLoading((prevState) => ({ ...prevState, messages: false }))
 
           break
         case 'MESSAGE':
@@ -189,8 +195,8 @@ function HomePage() {
         default:
           break
       }
-      console.log(data)
     }
+    console.log(data)
   }, [lastJsonMessage, isAuthenticated, connect, handleSetSelectChatId, fetchChats, fetchUsers, clientId])
   // Não vou colocar selectedChatId aqui, pois não quero que ele atualize a cada mudança de chat (com tempo, avaliar)
 
@@ -221,6 +227,7 @@ function HomePage() {
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <Grid container sx={{ height: '80vh', maxWidth: '1280px' }}>
           <Grid item xs={3}>
+            {(loading.chats || loading.users) && <CircularProgress />}
             {chatList && userList && (
               <Box sx={{ width: '100%', typography: 'body1' }}>
                 <TabContext value={tabValue}>
@@ -231,7 +238,7 @@ function HomePage() {
                       <Tab label={<AddIcon />} value='createGroup'></Tab>
                     </TabList>
                   </Box>
-                  <TabPanel value='chatList' sx={{ p: 0 }}>
+                  <TabPanel value='chatList' sx={{ p: 0 }} style={{ maxHeight: '80vh', overflowY: 'auto' }}>
                     <ChatList
                       chats={chatList}
                       selectedChatId={selectedChatId}
@@ -239,10 +246,10 @@ function HomePage() {
                       chatName={chatName}
                     />
                   </TabPanel>
-                  <TabPanel value='userList' sx={{ p: 0 }}>
+                  <TabPanel value='userList' sx={{ p: 0 }} style={{ maxHeight: '80vh', overflowY: 'auto' }}>
                     <UserList users={userList} handleClickUser={handleClickUser} />
                   </TabPanel>
-                  <TabPanel value='createGroup' sx={{ p: 0 }}>
+                  <TabPanel value='createGroup' sx={{ p: 0 }} style={{ maxHeight: '80vh', overflowY: 'auto' }}>
                     <CreateGroupForm
                       groupForm={groupForm}
                       setGroupForm={setGroupForm}
@@ -256,6 +263,7 @@ function HomePage() {
             )}
           </Grid>
           <Grid item xs={9}>
+            {loading.messages && <CircularProgress />}
             {selectedChatId && (
               <MessageSection
                 messages={messages}
