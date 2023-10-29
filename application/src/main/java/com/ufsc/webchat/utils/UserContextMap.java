@@ -20,8 +20,9 @@ public class UserContextMap {
 		this.users.put(userId, new Pair<>(token, null));
 	}
 
-	public void remove(Long userId) {
-		this.users.remove(userId);
+	public void removeClientId(Long userId) {
+		Pair<String, String> tokenClientIdPair = this.users.get(userId);
+		this.users.put(userId, tokenClientIdPair.setAt1(null));
 	}
 
 	public void setUserClientId(Long userId, String clientId) {

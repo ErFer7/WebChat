@@ -1,5 +1,4 @@
 import { ThemeProvider, createTheme } from '@mui/material'
-import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { RouterProvider, createBrowserRouter } from 'react-router-dom'
 import { AuthProvider } from './hooks/useAuth.jsx'
@@ -31,11 +30,9 @@ const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
 ])
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <AuthProvider>
-      <ThemeProvider theme={darkTheme}>
-        <RouterProvider router={router} />
-      </ThemeProvider>
-    </AuthProvider>
-  </React.StrictMode>
+  <AuthProvider>
+    <ThemeProvider theme={darkTheme}>
+      <RouterProvider router={router} />
+    </ThemeProvider>
+  </AuthProvider>
 )

@@ -1,58 +1,74 @@
-import DeleteIcon from '@mui/icons-material/Delete'
-import { Alert, Box, Button, ListItem, ListItemButton, ListItemText, TextField } from '@mui/material'
+import {
+  Alert,
+  Box,
+  Button,
+  Chip,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  OutlinedInput,
+  Select,
+  TextField,
+} from '@mui/material'
 import PropTypes from 'prop-types'
-import { useState } from 'react'
 
-export default function CreateGroupForm({ groupForm, setGroupForm, handleCreateGroup, alert, setAlert }) {
-  const [username, setUserName] = useState('')
+const ITEM_HEIGHT = 48
+const ITEM_PADDING_TOP = 8
+const MenuProps = {
+  PaperProps: {
+    style: {
+      maxHeight: ITEM_HEIGHT * 4.5 + ITEM_PADDING_TOP,
+      width: 250,
+    },
+  },
+}
 
+function CreateGroupForm({ groupForm, setGroupForm, handleCreateGroup, alert, setAlert, userList }) {
   const handleGroupNameChange = (event) => {
     setGroupForm({ ...groupForm, groupName: event.target.value })
-    alert && setAlert(null)
-  }
-
-  const handleUsernameChange = (event) => {
-    setUserName(event.target.value)
-    alert && setAlert(null)
-  }
-
-  const handleAddUser = () => {
-    if (username === '') return
-    const prevUsernames = groupForm.usernames
-    setGroupForm({ ...groupForm, usernames: [...prevUsernames, username] })
-    setUserName('')
-    alert && setAlert(null)
-  }
-
-  const handleRemoveUser = (e, username) => {
-    const prevUsernames = groupForm.usernames
-    setGroupForm({
-      ...groupForm,
-      usernames: prevUsernames.filter((prevUsername) => prevUsername !== username),
-    })
     alert && setAlert(null)
   }
 
   const handleSubmit = (event) => {
     event.preventDefault()
     handleCreateGroup(groupForm)
+    setGroupForm({ groupName: '', usernames: [] })
+  }
+
+  const handleChange = (event) => {
+    const {
+      target: { value },
+    } = event
+
+    setGroupForm({ ...groupForm, usernames: typeof value === 'string' ? value.split(',') : value })
   }
 
   return (
     <Box component='form' onSubmit={handleSubmit} display='flex' flexDirection='column'>
       <TextField label='Nome do grupo' value={groupForm.groupName} onChange={handleGroupNameChange} sx={{ mt: 2 }} />
-      <TextField label='Username' value={username} onChange={handleUsernameChange} sx={{ mt: 2 }} />
-      <Button variant='outlined' color='primary' type='button' onClick={handleAddUser} sx={{ mt: 2 }}>
-        Adicionar usuário
-      </Button>
-      {groupForm?.usernames?.map((username, i) => (
-        <ListItem key={i} sx={{ mt: 2 }} disablePadding>
-          <ListItemButton role={undefined} onClick={(e) => handleRemoveUser(e, username)} dense>
-            <DeleteIcon sx={{ mr: 2 }} />
-            <ListItemText primary={username} />
-          </ListItemButton>
-        </ListItem>
-      ))}
+      <FormControl sx={{ mt: 2 }}>
+        <InputLabel id='demo-multiple-chip-label'>Usuários</InputLabel>
+        <Select
+          multiple
+          value={groupForm.usernames}
+          onChange={handleChange}
+          input={<OutlinedInput label='Usuários' />}
+          renderValue={(selected) => (
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+              {selected.map((value) => (
+                <Chip key={value} label={value} />
+              ))}
+            </Box>
+          )}
+          MenuProps={MenuProps}
+        >
+          {userList.map((user) => (
+            <MenuItem key={user.id} value={user.username}>
+              {user.username}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
       <Button
         variant='contained'
         color='primary'
@@ -77,4 +93,7 @@ CreateGroupForm.propTypes = {
   handleCreateGroup: PropTypes.func,
   alert: PropTypes.object,
   setAlert: PropTypes.func,
+  userList: PropTypes.arrayOf(PropTypes.object),
 }
+
+export { CreateGroupForm }

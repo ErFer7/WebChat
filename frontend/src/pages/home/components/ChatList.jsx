@@ -1,11 +1,12 @@
 import GroupIcon from '@mui/icons-material/Group'
+import MarkChatUnreadIcon from '@mui/icons-material/MarkChatUnread'
 import PersonIcon from '@mui/icons-material/Person'
-import { Box, Divider, List, ListItemButton, ListItemIcon, ListItemText } from '@mui/material'
+import { Box, Divider, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText } from '@mui/material'
 import PropTypes from 'prop-types'
-export function ChatList({ chats, selectedChatId, setSelectedChatId }) {
-  const handleListItemClick = (event, index) => {
-    setSelectedChatId(index)
-  }
+
+function ChatList({ chats, selectedChatId, setSelectedChat, notifyChatId }) {
+  const handleListItemClick = (_, chat) =>
+    setSelectedChat({ id: chat.id, name: chat.name, isGroupChat: chat.groupChat })
 
   return (
     <Box sx={{ width: '100%', bgcolor: 'background.paper' }}>
@@ -15,10 +16,20 @@ export function ChatList({ chats, selectedChatId, setSelectedChatId }) {
             <div key={chat.id}>
               <ListItemButton
                 selected={selectedChatId === chat.id}
-                onClick={(event) => handleListItemClick(event, chat.id)}
+                onClick={(event) => handleListItemClick(event, chat)}
               >
                 <ListItemIcon>{chat.groupChat ? <GroupIcon /> : <PersonIcon />}</ListItemIcon>
                 <ListItemText primary={chat.name} />
+                {notifyChatId == chat.id && (
+                  <ListItem
+                    secondaryAction={
+                      <IconButton edge='end' aria-label='comments'>
+                        <MarkChatUnreadIcon />
+                      </IconButton>
+                    }
+                    disablePadding
+                  />
+                )}
               </ListItemButton>
               <Divider />
             </div>
@@ -31,8 +42,9 @@ export function ChatList({ chats, selectedChatId, setSelectedChatId }) {
 
 ChatList.propTypes = {
   chats: PropTypes.arrayOf(PropTypes.object),
-  setSelectedChatId: PropTypes.func,
+  setSelectedChat: PropTypes.func,
   selectedChatId: PropTypes.number,
+  notifyChatId: PropTypes.number,
 }
 
-export default ChatList
+export { ChatList }

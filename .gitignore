@@ -204,3 +204,7 @@ cython_debug/
 /.nb-gradle/
 !**/src/main/**/build/
 !**/src/test/**/build/
+
+### Deploy ###
+
+deploy/config

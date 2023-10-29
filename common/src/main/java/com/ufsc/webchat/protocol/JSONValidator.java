@@ -11,8 +11,7 @@ public class JSONValidator {
 		List<String> missingFields = new ArrayList<>();
 
 		if (jsonObject == null) {
-			missingFields.add("payload");
-			return missingFields;
+			return requiredFields;
 		}
 
 		for (String field : requiredFields) {
