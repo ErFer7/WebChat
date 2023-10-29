@@ -3,7 +3,7 @@ import { Box, Divider, List, ListItemButton, ListItemIcon, ListItemText } from '
 import PropTypes from 'prop-types'
 import { useState } from 'react'
 
-export function UserList({ users, handleClickUser }) {
+function UserList({ users, handleClickUser }) {
   const [selectedIndex, setSelectedIndex] = useState(1)
 
   const handleListItemClick = (event, index, username) => {
@@ -39,3 +39,5 @@ UserList.propTypes = {
   users: PropTypes.arrayOf(PropTypes.object),
   handleClickUser: PropTypes.func,
 }
+
+export { UserList }

@@ -204,7 +204,7 @@ public class ClientPacketProcessor {
 
 		var missingFields = JSONValidator.validate(payload, List.of("message", "chatId", "userId"));
 		if (!missingFields.isEmpty()) {
-			this.externalHandler.sendPacketById(packet.getId(), this.packetFactory.createErrorResponse(PayloadType.MESSAGE, "Payload inválido"));
+			this.externalHandler.sendPacketById(packet.getId(), this.packetFactory.createErrorResponse(PayloadType.MESSAGE_FEEDBACK, "Payload inválido"));
 			logger.error("Invalid payload");
 			return;
 		}
@@ -221,13 +221,13 @@ public class ClientPacketProcessor {
 			Retry.launch(packet, this);
 			return;
 		} else if (messageServiceResponse.status() == Status.VALIDATION_ERROR) {
-			this.externalHandler.sendPacketById(clientId, this.packetFactory.createErrorResponse(PayloadType.MESSAGE, messageServiceResponse.message()));
+			this.externalHandler.sendPacketById(clientId, this.packetFactory.createErrorResponse(PayloadType.MESSAGE_FEEDBACK, messageServiceResponse.message()));
 			return;
 		}
 
 		ServiceResponse userServiceResponse = this.userService.loadUsersIdsFromChat(payload);
 		if (userServiceResponse.status() == Status.VALIDATION_ERROR) {
-			this.externalHandler.sendPacketById(clientId, this.packetFactory.createErrorResponse(PayloadType.MESSAGE, userServiceResponse.message()));
+			this.externalHandler.sendPacketById(clientId, this.packetFactory.createErrorResponse(PayloadType.MESSAGE_FEEDBACK, userServiceResponse.message()));
 			return;
 		}
 		MessageCreateDto messageCreateDto = (MessageCreateDto) messageServiceResponse.payload();

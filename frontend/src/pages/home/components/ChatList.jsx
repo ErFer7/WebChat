@@ -2,7 +2,7 @@ import GroupIcon from '@mui/icons-material/Group'
 import PersonIcon from '@mui/icons-material/Person'
 import { Box, Divider, List, ListItemButton, ListItemIcon, ListItemText } from '@mui/material'
 import PropTypes from 'prop-types'
-export function ChatList({ chats, selectedChatId, setSelectedChatId }) {
+function ChatList({ chats, selectedChatId, setSelectedChatId }) {
   const handleListItemClick = (event, index) => {
     setSelectedChatId(index)
   }
@@ -35,4 +35,4 @@ ChatList.propTypes = {
   selectedChatId: PropTypes.number,
 }
 
-export default ChatList
+export { ChatList }

@@ -23,7 +23,7 @@ const MenuProps = {
   },
 }
 
-export default function CreateGroupForm({ groupForm, setGroupForm, handleCreateGroup, alert, setAlert, userList }) {
+function CreateGroupForm({ groupForm, setGroupForm, handleCreateGroup, alert, setAlert, userList }) {
   const handleGroupNameChange = (event) => {
     setGroupForm({ ...groupForm, groupName: event.target.value })
     alert && setAlert(null)
@@ -32,6 +32,7 @@ export default function CreateGroupForm({ groupForm, setGroupForm, handleCreateG
   const handleSubmit = (event) => {
     event.preventDefault()
     handleCreateGroup(groupForm)
+    setGroupForm({ groupName: '', usernames: [] })
   }
 
   const handleChange = (event) => {
@@ -94,3 +95,5 @@ CreateGroupForm.propTypes = {
   setAlert: PropTypes.func,
   userList: PropTypes.arrayOf(PropTypes.object),
 }
+
+export { CreateGroupForm }

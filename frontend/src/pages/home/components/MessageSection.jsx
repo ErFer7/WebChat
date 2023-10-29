@@ -2,7 +2,10 @@ import SendIcon from '@mui/icons-material/Send'
 import { Alert, Box, Button, Paper, TextField, Typography, useTheme } from '@mui/material'
 import PropTypes from 'prop-types'
 import { useEffect, useRef, useState } from 'react'
-function MessageSection({ messages, chatName, handleSendMessage, selfUserId }) {
+import { useAuth } from '../../../hooks/useAuth'
+function MessageSection({ messages, chatName, handleSendMessage }) {
+  const { applicationConnectionInfo } = useAuth()
+
   const [message, setMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
   const theme = useTheme()
@@ -54,7 +57,7 @@ function MessageSection({ messages, chatName, handleSendMessage, selfUserId }) {
       </Box>
       <Box ref={boxRef} style={{ maxHeight: '55vh', overflowY: 'auto' }} sx={{ px: 2 }}>
         {messages?.map((message, index) => (
-          <ChatMessage key={index} message={message} selfUserId={selfUserId} />
+          <ChatMessage key={index} message={message} selfUserId={applicationConnectionInfo.userId} />
         ))}
       </Box>
       {errorMessage && (
@@ -110,16 +113,15 @@ function ChatMessage({ message, selfUserId }) {
   )
 }
 
-export default MessageSection
-
 MessageSection.propTypes = {
   messages: PropTypes.arrayOf(PropTypes.object),
   chatName: PropTypes.string,
   handleSendMessage: PropTypes.func,
-  selfUserId: PropTypes.number,
 }
 
 ChatMessage.propTypes = {
   message: PropTypes.object,
   selfUserId: PropTypes.number,
 }
+
+export { MessageSection }

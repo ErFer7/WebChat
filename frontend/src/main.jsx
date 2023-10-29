@@ -1,5 +1,4 @@
 import { ThemeProvider, createTheme } from '@mui/material'
-import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { RouterProvider, createBrowserRouter } from 'react-router-dom'
 import { AuthProvider } from './hooks/useAuth.jsx'
