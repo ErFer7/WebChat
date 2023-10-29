@@ -1,42 +1,116 @@
-import AccountCircle from '@mui/icons-material/AccountCircle'
 import AddIcon from '@mui/icons-material/Add'
-import LogoutIcon from '@mui/icons-material/Logout'
 import { TabContext, TabList, TabPanel } from '@mui/lab'
-
-import { AppBar, Box, Button, Grid, IconButton, Tab, Toolbar, Typography } from '@mui/material'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Box, CircularProgress, Grid, Tab } from '@mui/material'
+import { useCallback, useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import useWebSocket from 'react-use-websocket'
 import { useAuth } from '../../hooks/useAuth'
-import ChatList from './components/ChatList'
-import CreateGroupForm from './components/CreateGroupForm'
-import MessageSection from './components/MessageSection'
-import { UserList } from './components/UserList'
+import { ChatList, CreateGroupForm, Header, MessageSection, UserList } from './components'
 
 function HomePage() {
-  const { isAuthenticated, applicationConnectionInfo, logout, clientId } = useAuth() // pegar infos dessa hook
-  const { sendJsonMessage, lastJsonMessage } = useWebSocket(
+  const { isAuthenticated, applicationConnectionInfo, clientId, logout } = useAuth()
+
+  const [chatList, setChatList] = useState()
+  const [userList, setUserList] = useState()
+  const [tabValue, setTabValue] = useState('chatList')
+  const [groupForm, setGroupForm] = useState({ groupName: '', usernames: [] })
+  const [createGroupAlert, setCreateGroupAlert] = useState()
+  const [selectedChat, setSelectedChat] = useState({ id: null, name: null, isGroupChat: null, usernames: [] })
+  const [notifyChatId, setNotifyChatId] = useState(null)
+  const [messages, setMessages] = useState([])
+  const [loading, setLoading] = useState({ websocket: true, chats: false, users: false, messages: false })
+
+  const handleNewWebSocketMessage = (message) => {
+    const data = JSON.parse(message.data)
+    if (isAuthenticated) {
+      switch (data?.payloadType) {
+        case 'HOST':
+          data?.operationType == 'INFO' && connect(data?.payload?.host)
+          break
+
+        case 'CLIENT_CONNECTION':
+          if (data?.status == 'OK') {
+            fetchChats()
+            fetchUsers()
+          }
+          break
+
+        case 'CHAT_LISTING':
+          data?.status == 'OK' && setChatList(data?.payload?.chats)
+          setLoading((prevState) => ({ ...prevState, chats: false }))
+          break
+
+        case 'USER_LISTING':
+          data?.status == 'OK' && setUserList(data?.payload?.users)
+          setLoading((prevState) => ({ ...prevState, users: false }))
+          break
+
+        case 'GROUP_CHAT_CREATION':
+          if (data?.status == 'CREATED') {
+            setCreateGroupAlert({ severity: 'success', message: 'Grupo criado com sucesso!' })
+            setGroupForm({ groupName: '', usernames: [] })
+            fetchChats()
+          } else if (data?.status == 'ERROR' || data?.status == 'VALIDATION_ERROR') {
+            setCreateGroupAlert({ severity: 'error', message: data?.payload?.message })
+          }
+          break
+
+        case 'GET_USER_CHAT_ID':
+          data?.payload?.chatId &&
+            handleSelectChat({ id: data?.payload?.chatId, name: data?.payload?.targetUsername, isGroupChat: false })
+          data?.status == 'CREATED' && fetchChats()
+          break
+        case 'CHAT_USERS_LISTING':
+          data?.status == 'OK' &&
+            setSelectedChat((prevState) => ({ ...prevState, usernames: data?.payload?.usernames }))
+          break
+        case 'MESSAGE_LISTING':
+          data?.status == 'OK' && setMessages(data?.payload?.messages)
+          setLoading((prevState) => ({ ...prevState, messages: false }))
+          break
+
+        case 'MESSAGE':
+          if (data?.status == 'OK') {
+            data?.payload?.chatId == selectedChat.id
+              ? setMessages((prevState) =>
+                  prevState.concat({
+                    senderId: data?.payload?.userId,
+                    senderUsername: data?.payload?.senderUsername,
+                    message: data?.payload?.message,
+                    sentAt: data?.payload?.sentAt,
+                  })
+                )
+              : setNotifyChatId(data?.payload?.chatId)
+          }
+          break
+
+        default:
+          break
+      }
+      console.log(data)
+    }
+  }
+
+  const { sendJsonMessage } = useWebSocket(
     `ws:/${applicationConnectionInfo?.applicationHost}`,
     {
-      onOpen: () => console.log(`Connected to App WS`),
-      onClose: () => logout(),
+      onOpen: () => {
+        console.log(`Connected to App WS`)
+        setLoading((prevState) => ({ ...prevState, websocket: false }))
+      },
+      shouldReconnect: () => true,
+      reconnectAttempts: 5,
+      reconnectInterval: 1000,
+      onReconnectStop: () => logout(),
+      onMessage: handleNewWebSocketMessage,
     },
     isAuthenticated
   )
 
-  const [chatList, setChatList] = useState()
-  const [userList, setUserList] = useState()
-  const [tabValue, setTableValue] = useState('chatList')
-  const [groupForm, setGroupForm] = useState({ groupName: '', usernames: [] })
-  const [createGroupAlert, setCreateGroupAlert] = useState()
-  const [selectedChatId, setSelectedChatId] = useState()
-  const [messages, setMessages] = useState([])
-
-  const chatName = chatList?.find((chat) => chat.id == selectedChatId)?.name // tentar pegar do back
-
+  // Essas informação poderia vir do backend diretamente
   const loggedUsername = useMemo(
     () => userList?.find((user) => user.id == applicationConnectionInfo.userId).username,
-    [userList, applicationConnectionInfo] // tentar pegar do back
+    [userList, applicationConnectionInfo]
   )
 
   const commonRequestPacket = useMemo(() => {
@@ -52,9 +126,7 @@ function HomePage() {
     }
   }, [applicationConnectionInfo, clientId])
 
-  const handleChangeTab = (event, newValue) => {
-    setTableValue(newValue)
-  }
+  const handleChangeTab = (_, newValue) => setTabValue(newValue)
 
   const handleCreateGroup = (model) =>
     sendJsonMessage({
@@ -80,7 +152,7 @@ function HomePage() {
       payloadType: 'MESSAGE',
       payload: {
         ...commonRequestPacket.payload,
-        chatId: selectedChatId,
+        chatId: selectedChat.id,
         message: message,
       },
     })
@@ -94,29 +166,35 @@ function HomePage() {
     )
   }
 
-  const handleSetSelectChatId = useCallback(
-    (chatId) => {
-      setSelectedChatId(chatId)
-      sendJsonMessage({
+  const handleSelectChat = useCallback(
+    (chat) => {
+      setSelectedChat(chat)
+      setNotifyChatId((prevState) => (prevState == chat.id ? null : prevState))
+      setLoading((prevState) => ({ ...prevState, messages: true }))
+
+      const requestPacket = {
         ...commonRequestPacket,
-        payloadType: 'MESSAGE_LISTING',
         payload: {
           ...commonRequestPacket.payload,
-          chatId: chatId,
+          chatId: chat.id,
         },
-      })
+      }
+      sendJsonMessage({ ...requestPacket, payloadType: 'MESSAGE_LISTING' })
+      chat.isGroupChat && sendJsonMessage({ ...requestPacket, payloadType: 'CHAT_USERS_LISTING' })
     },
     [sendJsonMessage, commonRequestPacket]
   )
 
-  const fetchChats = useCallback(
-    () => sendJsonMessage({ ...commonRequestPacket, payloadType: 'CHAT_LISTING' }),
-    [sendJsonMessage, commonRequestPacket]
-  )
-  const fetchUsers = useCallback(
-    () => sendJsonMessage({ ...commonRequestPacket, payloadType: 'USER_LISTING' }),
-    [sendJsonMessage, commonRequestPacket]
-  )
+  const fetchChats = useCallback(() => {
+    setLoading((prevState) => ({ ...prevState, chats: true }))
+    sendJsonMessage({ ...commonRequestPacket, payloadType: 'CHAT_LISTING' })
+  }, [sendJsonMessage, commonRequestPacket])
+
+  const fetchUsers = useCallback(() => {
+    setLoading((prevState) => ({ ...prevState, users: true }))
+    sendJsonMessage({ ...commonRequestPacket, payloadType: 'USER_LISTING' })
+  }, [sendJsonMessage, commonRequestPacket])
+
   const connect = useCallback(
     (host) =>
       sendJsonMessage({
@@ -130,97 +208,13 @@ function HomePage() {
     [sendJsonMessage, commonRequestPacket]
   )
 
-  useEffect(() => {
-    const data = lastJsonMessage
-    if (lastJsonMessage && isAuthenticated) {
-      switch (data?.payloadType) {
-        case 'HOST':
-          data?.operationType == 'INFO' && connect(data?.payload?.host)
-
-          break
-        case 'CLIENT_CONNECTION':
-          if (data?.status == 'OK') {
-            fetchChats()
-            fetchUsers()
-          }
-
-          break
-        case 'USER_LISTING':
-          data?.status == 'OK' && setUserList(data?.payload?.users)
-
-          break
-        case 'CHAT_LISTING':
-          data?.status == 'OK' && setChatList(data?.payload?.chats)
-
-          break
-        case 'GROUP_CHAT_CREATION':
-          if (data?.status == 'CREATED') {
-            setCreateGroupAlert({ severity: 'success', message: 'Grupo criado com sucesso!' })
-            setGroupForm({ groupName: '', usernames: [] })
-            fetchChats()
-          } else if (data?.status == 'ERROR' || data?.status == 'VALIDATION_ERROR') {
-            setCreateGroupAlert({ severity: 'error', message: data?.payload?.message })
-          }
-
-          break
-        case 'GET_USER_CHAT_ID':
-          data?.payload?.chatId && handleSetSelectChatId(data?.payload?.chatId)
-          data?.status == 'CREATED' && fetchChats()
-
-          break
-        case 'MESSAGE_LISTING':
-          data?.status == 'OK' && setMessages(data?.payload?.messages)
-
-          break
-        case 'MESSAGE':
-          if (data?.status == 'OK') {
-            data?.payload?.chatId == selectedChatId &&
-              setMessages((prevState) =>
-                prevState.concat({
-                  senderId: data?.payload?.userId,
-                  senderUsername: data?.payload?.senderUsername,
-                  message: data?.payload?.message,
-                  sentAt: data?.payload?.sentAt,
-                })
-              ) // Posso mandar um feedback sobre os outros chats.
-          }
-
-          break
-        default:
-          break
-      }
-      console.log(data)
-    }
-  }, [lastJsonMessage, isAuthenticated, connect, handleSetSelectChatId, fetchChats, fetchUsers, clientId])
-  // Não vou colocar selectedChatId aqui, pois não quero que ele atualize a cada mudança de chat (com tempo, avaliar)
-
   return isAuthenticated ? (
     <div>
-      <Grid container sx={{ mb: 4 }}>
-        <Box sx={{ flexGrow: 1 }}>
-          <AppBar position='static'>
-            <Toolbar>
-              <Typography
-                variant='h6'
-                component='div'
-                sx={{ flexGrow: 1, fontFamily: 'monospace', fontWeight: 700, letterSpacing: '.3rem' }}
-              >
-                WEBCHAT
-              </Typography>
-              <Typography>{loggedUsername}</Typography>
-              <IconButton size='large' color='inherit' sx={{ mr: 2 }}>
-                <AccountCircle />
-              </IconButton>
-              <Button onClick={logout} variant='outlined' color='inherit' startIcon={<LogoutIcon />}>
-                Sair
-              </Button>
-            </Toolbar>
-          </AppBar>
-        </Box>
-      </Grid>
+      <Header username={loggedUsername} />
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <Grid container sx={{ height: '80vh', maxWidth: '1280px' }}>
           <Grid item xs={3}>
+            {(loading.websocket || loading.chats || loading.users) && <CircularProgress />}
             {chatList && userList && (
               <Box sx={{ width: '100%', typography: 'body1' }}>
                 <TabContext value={tabValue}>
@@ -231,24 +225,25 @@ function HomePage() {
                       <Tab label={<AddIcon />} value='createGroup'></Tab>
                     </TabList>
                   </Box>
-                  <TabPanel value='chatList' sx={{ p: 0 }}>
+                  <TabPanel value='chatList' sx={{ p: 0 }} style={{ maxHeight: '80vh', overflowY: 'auto' }}>
                     <ChatList
                       chats={chatList}
-                      selectedChatId={selectedChatId}
-                      setSelectedChatId={handleSetSelectChatId}
-                      chatName={chatName}
+                      selectedChatId={selectedChat.id}
+                      setSelectedChat={handleSelectChat}
+                      notifyChatId={notifyChatId}
                     />
                   </TabPanel>
-                  <TabPanel value='userList' sx={{ p: 0 }}>
+                  <TabPanel value='userList' sx={{ p: 0 }} style={{ maxHeight: '80vh', overflowY: 'auto' }}>
                     <UserList users={userList} handleClickUser={handleClickUser} />
                   </TabPanel>
-                  <TabPanel value='createGroup' sx={{ p: 0 }}>
+                  <TabPanel value='createGroup' sx={{ p: 0 }} style={{ maxHeight: '80vh', overflowY: 'auto' }}>
                     <CreateGroupForm
                       groupForm={groupForm}
                       setGroupForm={setGroupForm}
                       handleCreateGroup={handleCreateGroup}
                       alert={createGroupAlert}
                       setAlert={setCreateGroupAlert}
+                      userList={userList}
                     />
                   </TabPanel>
                 </TabContext>
@@ -256,14 +251,10 @@ function HomePage() {
             )}
           </Grid>
           <Grid item xs={9}>
-            {selectedChatId && (
-              <MessageSection
-                messages={messages}
-                chatName={chatName}
-                handleSendMessage={handleSendMessage}
-                selfUserId={applicationConnectionInfo.userId}
-              />
+            {selectedChat.id && (
+              <MessageSection messages={messages} selectedChat={selectedChat} handleSendMessage={handleSendMessage} />
             )}
+            {loading.messages && <CircularProgress />}
           </Grid>
         </Grid>
       </div>

@@ -75,7 +75,14 @@ public class GatewayPacketProcessor {
 		logger.info("Sending connection request to gateway");
 
 		int externalPort = this.externalHandler.getInternalChannel().socket().getLocalPort();
-		Packet response = this.packetFactory.createGatewayConnectionRequest(this.gatewayIdentifier, this.gatewayPassword, host, externalPort);
+		JSONObject newPayload = new JSONObject();
+
+		newPayload.put("identifier", this.gatewayIdentifier);
+		newPayload.put("password", this.gatewayPassword);
+		newPayload.put("host", host);
+		newPayload.put("externalPort", externalPort);
+
+		Packet response = this.packetFactory.createRequest(PayloadType.APPLICATION_CONNECTION, newPayload);
 		this.internalHandler.sendPacketById(this.gatewayId.getString(), response);
 	}
 
@@ -112,14 +119,24 @@ public class GatewayPacketProcessor {
 
 		this.userContextMap.add(userId, token);
 
-		this.internalHandler.sendPacketById(this.gatewayId.getString(), this.packetFactory.createApplicationClientRoutingResponse(Status.OK, userId, token));
+		this.internalHandler.sendPacketById(this.gatewayId.getString(), this.packetFactory.createOkResponse(PayloadType.ROUTING, payload));
 	}
 
 	private void receiveGatewayClientDisconnectionResponse(Packet packet) {
 		JSONObject payload = packet.getPayload();
 
-		if (packet.getStatus() == Status.ERROR) {
-			logger.error("Client disconnection failed: {}", payload.getString("message"));
+		var missingFields = JSONValidator.validate(payload, List.of("message"));
+		if (!missingFields.isEmpty()) {
+			logger.error("Invalid payload");
+			return;
+		}
+
+		String message = payload.getString("message");
+
+		if (packet.getStatus() == Status.OK) {
+			logger.info("Client disconnection successful: {}", message);
+		} else {
+			logger.error("Client disconnection failed: {}", message);
 		}
 	}
 
@@ -171,7 +188,7 @@ public class GatewayPacketProcessor {
 		String targetUserClientId = this.userContextMap.getClientId(targetUserId);
 
 		if (!isNull(targetUserClientId)) {
-			this.externalHandler.sendPacketById(targetUserClientId, this.packetFactory.createApplicationMessageResponse(Status.OK, packet.getPayload()));
+			this.externalHandler.sendPacketById(targetUserClientId, this.packetFactory.createOkResponse(PayloadType.MESSAGE, packet.getPayload()));
 		} else {
 			this.externalHandler.sendPacketById(this.gatewayId.getString(), this.packetFactory.createErrorResponse(PayloadType.MESSAGE, "Usuário não conectado"));
 		}

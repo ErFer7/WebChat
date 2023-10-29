@@ -23,8 +23,8 @@ public class ExternalHandler extends Handler {
 	}
 
 	@Override protected void sessionClosed(IWebSocketSession session) {
-		if (this.sessions.getIdByName(session.getName()) != null) {
-			((ManagerImpl) this.managerThread).sendGatewayClientDisconnectionRequest(this.sessions.getIdByName(session.getName()));
+		if (this.sessions.getProcessIdBySessionId(session.getId()) != null) {
+			((ManagerImpl) this.managerThread).sendGatewayClientDisconnectionRequest(this.sessions.getProcessIdBySessionId(session.getId()));
 		}
 
 		super.sessionClosed(session);

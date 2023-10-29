@@ -7,3 +7,7 @@
 * Initial commit
 
 ---
+
+## v1.0
+
+* MVP

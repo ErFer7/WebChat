@@ -25,19 +25,21 @@ public class ApplicationPacketProcessor {
 	private final PacketFactory packetFactory;
 	private final String gatewayIdentifier;
 	private final String gatewayPassword;
-	private final HashMap<Long, String> userIdApplicationIdMap = new HashMap<>();
+	private final HashMap<Long, String> userIdApplicationIdMap;
 	private final ApplicationContextMap applicationContextMap;
 	private final HashMap<Long, String> userIdClientIdMap;
 	private static final Logger logger = LoggerFactory.getLogger(ApplicationPacketProcessor.class);
 
 	public ApplicationPacketProcessor(ServerHandler serverHandler,
 			PacketFactory packetFactory,
+			HashMap<Long, String> userIdApplicationIdMap,
 			ApplicationContextMap applicationContextMap,
 			HashMap<Long, String> userIdClientIdMap) {
 		this.serverHandler = serverHandler;
 		this.packetFactory = packetFactory;
 		this.gatewayIdentifier = getProperty("gatewayIdentifier");
 		this.gatewayPassword = getProperty("gatewayPassword");
+		this.userIdApplicationIdMap = userIdApplicationIdMap;
 		this.applicationContextMap = applicationContextMap;
 		this.userIdClientIdMap = userIdClientIdMap;
 	}
@@ -74,7 +76,9 @@ public class ApplicationPacketProcessor {
 			String token = this.serverHandler.generateToken();
 			this.serverHandler.associateIdToHost(host, id);
 			this.applicationContextMap.add(id, token, host.split(":")[0] + ':' + externalPort);
-			this.serverHandler.sendPacketById(id, this.packetFactory.createApplicationConnectionResponse(Status.OK, token));
+			JSONObject newPayload = new JSONObject();
+			newPayload.put("token", token);
+			this.serverHandler.sendPacketById(id, this.packetFactory.createOkResponse(PayloadType.APPLICATION_CONNECTION, newPayload));
 		} else {
 			this.serverHandler.sendPacketById(id, this.packetFactory.createErrorResponse(PayloadType.APPLICATION_CONNECTION, "Erro na autenticação"));
 		}
@@ -84,7 +88,7 @@ public class ApplicationPacketProcessor {
 		String applicationId = packet.getId();
 		JSONObject payload = packet.getPayload();
 
-		var missingFields = JSONValidator.validate(payload, List.of("clientId"));
+		var missingFields = JSONValidator.validate(payload, List.of("clientId", "userId"));
 		if (!missingFields.isEmpty()) {
 			this.serverHandler.sendPacketById(applicationId, this.packetFactory.createErrorResponse(PayloadType.CLIENT_CONNECTION, "Payload inválido"));
 			return;
@@ -95,6 +99,7 @@ public class ApplicationPacketProcessor {
 			return;
 		}
 
+		this.userIdApplicationIdMap.put(payload.getLong("userId"), applicationId);
 		this.applicationContextMap.incrementUserCount(applicationId);
 		this.serverHandler.sendPacketById(applicationId, this.packetFactory.createOkResponse(PayloadType.CLIENT_CONNECTION, payload));
 	}
@@ -117,7 +122,6 @@ public class ApplicationPacketProcessor {
 		}
 
 		if (packet.getStatus() == Status.OK) {
-			this.userIdApplicationIdMap.put(userId, applicationId);
 			this.serverHandler.completeClientLoginRequest(clientId, new RoutingResponseDto(
 					Status.OK,
 					payload.getString("token"),
@@ -149,7 +153,7 @@ public class ApplicationPacketProcessor {
 		this.userIdApplicationIdMap.remove(userId);
 		this.applicationContextMap.decrementUserCount(applicationId);
 
-		this.serverHandler.sendPacketById(applicationId, this.packetFactory.createGatewayClientDisconnectionResponse(userId));
+		this.serverHandler.sendPacketById(applicationId, this.packetFactory.createOkResponse(PayloadType.DISCONNECTION, "Desconexão realizada"));
 	}
 
 	public void receiveApplicationMessageForwardingRequest(Packet packet) {
@@ -173,7 +177,7 @@ public class ApplicationPacketProcessor {
 		Packet responsePacket;
 		if (!isNull(targetApplicationId)) {
 			responsePacket = this.packetFactory.createOkResponse(PayloadType.MESSAGE, "Mensagem encaminhada");
-			this.serverHandler.sendPacketById(targetApplicationId, this.packetFactory.createMessageForwarding(payload));
+			this.serverHandler.sendPacketById(targetApplicationId, this.packetFactory.createRequest(PayloadType.MESSAGE_FORWARDING, payload));
 		} else {
 			responsePacket = this.packetFactory.createErrorResponse(PayloadType.MESSAGE,
 					"Usuário não está conectado a nenhum servidor de aplicação");

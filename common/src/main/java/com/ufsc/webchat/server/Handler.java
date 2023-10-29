@@ -63,6 +63,19 @@ public abstract class Handler extends AbstractWebSocketHandler {
 			session.writenf(new TextFrame(packet.toString()));
 		} catch (Exception e) {
 			logger.error("Error while sending packet: {}", packet);
+			logger.info("Performing session cleaning");
+
+			try {
+				this.cleanSessions();
+			} catch (Exception e2) {
+				logger.error("Error while cleaning sessions");
+			}
+		}
+	}
+
+	private void cleanSessions() {
+		for (IWebSocketSession session : this.sessions.getClosedSessions()) {
+			this.sessionClosed(session);
 		}
 	}
 
@@ -74,7 +87,7 @@ public abstract class Handler extends AbstractWebSocketHandler {
 		case CREATED -> this.sessionCreated(session);
 		case OPENED -> this.sessionOpened(session);
 		case READY -> this.sessionReady(session);
-		case CLOSED -> this.sessionClosed(session);
+		case CLOSED -> this.cleanSessions();
 		case ENDING -> this.sessionEnding(session);
 		}
 	}
@@ -90,13 +103,13 @@ public abstract class Handler extends AbstractWebSocketHandler {
 	protected void sessionReady(IWebSocketSession session) {
 		logger.info("Session ready: {}", session.getName());
 
-		this.sessions.addSession(session.getName(), session.getRemoteAddress().toString(), session);
+		this.sessions.addSession(session.getId(), session.getRemoteAddress().toString(), session);
 	}
 
 	protected void sessionClosed(IWebSocketSession session) {
 		logger.info("Session closed: {}", session.getName());
 
-		this.sessions.removeByName(session.getName());
+		this.sessions.removeBySessionId(session.getId());
 	}
 
 	protected void sessionEnding(IWebSocketSession session) {
