@@ -228,7 +228,7 @@ function HomePage() {
                   <TabPanel value='chatList' sx={{ p: 0 }} style={{ maxHeight: '80vh', overflowY: 'auto' }}>
                     <ChatList
                       chats={chatList}
-                      selectedChat={selectedChat}
+                      selectedChatId={selectedChat.id}
                       setSelectedChat={handleSelectChat}
                       notifyChatId={notifyChatId}
                     />
