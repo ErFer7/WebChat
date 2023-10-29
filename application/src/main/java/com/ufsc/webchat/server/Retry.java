@@ -5,29 +5,17 @@ import com.ufsc.webchat.protocol.Packet;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class Retry {
-    public static void launch(Packet packet, ClientPacketProcessor clientPacketProcessor) {
-        Timer timer = new Timer();
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-        TimerTask task = new RetryTask(packet, clientPacketProcessor);
-
-        // Schedule the task to run after 2000 milliseconds (2 seconds)
-        timer.schedule(task, 2000);
-    }
-
-    protected static class RetryTask extends TimerTask {
-        private final Packet packet;
-        private final ClientPacketProcessor clientPacketProcessor;
-
-        public RetryTask(Packet packet, ClientPacketProcessor clientPacketProcessor) {
-            this.packet = packet;
-            this.clientPacketProcessor = clientPacketProcessor;
-        }
-
-        @Override
-        public void run() {
-            this.clientPacketProcessor.tryAgain(this.packet);
-        }
-    }
-
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.METHOD)
+public @interface Retry {
+    int maxAttempts() default 1; // Número máximo de tentativas
+    long delayMillis() default 2000; // Atraso em milissegundos entre as tentativas
+    Class<? extends Throwable> onException() default Exception.class; // Exceção a ser tratada
 }
+
+

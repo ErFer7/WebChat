@@ -51,24 +51,45 @@ public class ClientPacketProcessor {
 		switch (packet.getPayloadType()) {
 		case CLIENT_CONNECTION -> this.receiveClientConnectionRequest(packet);
 		case USER_LISTING -> this.receiveClientUserListingRequest(packet);
-		case GROUP_CHAT_CREATION -> this.receiveClientGroupChatCreationRequest(packet);
+		case GROUP_CHAT_CREATION -> {
+			try {
+				Object[] argument = { packet };
+				RetryProcessor.executeWithRetry(this, this.getClass().getMethod("receiveClientGroupChatCreationRequest", Packet.class), argument);
+			} catch (Exception e) {
+				logger.error("Invalid function");
+			}
+		}
 		case CHAT_LISTING -> this.receiveClientChatListingRequest(packet);
-		case GROUP_CHAT_ADDITION -> this.receiveClientGroupChatAdditionRequest(packet);
+		case GROUP_CHAT_ADDITION -> {
+			try {
+				Object[] argument = { packet };
+				RetryProcessor.executeWithRetry(this, this.getClass().getMethod("receiveClientGroupChatAdditionRequest", Packet.class), argument);
+			} catch (Exception e) {
+				logger.error("Invalid function");
+			}
+		}
 		case GET_USER_CHAT_ID -> this.receiveClientGetUserChatId(packet);
-		case MESSAGE -> this.receiveClientMessage(packet);
+		case MESSAGE -> {
+			try {
+				Object[] argument = { packet };
+				RetryProcessor.executeWithRetry(this, this.getClass().getMethod("receiveClientMessage", Packet.class), argument);
+			} catch (Exception e) {
+				logger.error("Invalid function");
+			}
+		}
 		case MESSAGE_LISTING -> this.receiveClientMessageListing(packet);
 		default -> logger.warn("Unexpected packet type: {}", packet.getPayloadType());
 		}
 	}
 
-	public void tryAgain(Packet packet) {
-		switch (packet.getPayloadType()) {
-		case GROUP_CHAT_CREATION -> this.retryClientGroupChatCreationRequest(packet);
-		case GROUP_CHAT_ADDITION -> this.retryClientGroupChatAdditionRequest(packet);
-		case MESSAGE -> this.retryClientMessage(packet);
-		default -> logger.warn("Unexpected packet type in retry: {}", packet.getPayloadType());
-		}
-	}
+//	public void tryAgain(Packet packet) {
+//		switch (packet.getPayloadType()) {
+//		case GROUP_CHAT_CREATION -> this.retryClientGroupChatCreationRequest(packet);
+//		case GROUP_CHAT_ADDITION -> this.retryClientGroupChatAdditionRequest(packet);
+//		case MESSAGE -> this.retryClientMessage(packet);
+//		default -> logger.warn("Unexpected packet type in retry: {}", packet.getPayloadType());
+//		}
+//	}
 
 	public void receiveClientDisconnection(String clientId) {
 		Long userId = this.userContextMap.getUserIdByClientId(clientId);
@@ -125,7 +146,8 @@ public class ClientPacketProcessor {
 		this.externalHandler.sendPacketById(packet.getId(), responsePacket);
 	}
 
-	private void receiveClientGroupChatCreationRequest(Packet packet) {
+	@Retry(maxAttempts = 3, delayMillis = 1000, onException = RetryException.class)
+	public void receiveClientGroupChatCreationRequest(Packet packet) throws RetryException {
 		JSONObject payload = packet.getPayload();
 
 		var missingFields = JSONValidator.validate(payload, List.of("groupName", "membersUsernames", "userId"));
@@ -144,8 +166,7 @@ public class ClientPacketProcessor {
 		JSONObject responsePayload = isNull(chatId) ? null : new JSONObject(Map.of("chatId", chatId));
 
 		if (serviceResponse.status().equals(Status.ERROR)) {
-			Retry.launch(packet, this);
-			return;
+			throw new RetryException("Erro receiveClientGroupChatCreationRequest");
 		}
 
 		var responsePacket = this.packetFactory.createGenericClientResponse(serviceResponse.status(), PayloadType.GROUP_CHAT_CREATION, responsePayload, serviceResponse.message());
@@ -171,7 +192,8 @@ public class ClientPacketProcessor {
 		this.externalHandler.sendPacketById(packet.getId(), responsePacket);
 	}
 
-	private void receiveClientGroupChatAdditionRequest(Packet packet) {
+	@Retry(maxAttempts = 3, delayMillis = 1000, onException = RetryException.class)
+	public void receiveClientGroupChatAdditionRequest(Packet packet) throws RetryException {
 		JSONObject payload = packet.getPayload();
 
 		var missingFields = JSONValidator.validate(payload, List.of("userId", "chatId", "addedUserName"));
@@ -187,13 +209,14 @@ public class ClientPacketProcessor {
 		ServiceResponse serviceResponse = this.chatService.addToChatGroup(packet.getPayload());
 
 		if (serviceResponse.status().equals(Status.ERROR)) {
-			Retry.launch(packet, this);
+			throw new RetryException("Erro receiveClientGroupChatAdditionRequest");
 		}
 
 		this.externalHandler.sendPacketById(packet.getId(), this.packetFactory.createGroupChatAdditionResponse(serviceResponse.status(), serviceResponse.message()));
 	}
 
-	private void receiveClientMessage(Packet packet) {
+	@Retry(maxAttempts = 2, delayMillis = 1000, onException = RetryException.class)
+	public void receiveClientMessage(Packet packet) throws RetryException {
 		JSONObject payload = packet.getPayload();
 
 		var missingFields = JSONValidator.validate(payload, List.of("message", "chatId", "userId"));
@@ -212,8 +235,7 @@ public class ClientPacketProcessor {
 
 		ServiceResponse messageServiceResponse = this.messageService.saveMessage(payload);
 		if (messageServiceResponse.status() == Status.ERROR) {
-			Retry.launch(packet, this);
-			return;
+			throw new RetryException("Erro receiveClientMessage");
 		} else if (messageServiceResponse.status() == Status.VALIDATION_ERROR) {
 			this.externalHandler.sendPacketById(clientId, this.packetFactory.createErrorResponse(PayloadType.MESSAGE, messageServiceResponse.message()));
 			return;
@@ -289,43 +311,4 @@ public class ClientPacketProcessor {
 			}
 		}
 	}
-
-	private void retryClientGroupChatCreationRequest(Packet packet) {
-		ServiceResponse serviceResponse = this.chatService.saveChatGroup(packet.getPayload());
-		var chatId = serviceResponse.payload();
-		JSONObject responsePayload = isNull(chatId) ? null : new JSONObject(Map.of("chatId", chatId));
-		var responsePacket = this.packetFactory.createGenericClientResponse(serviceResponse.status(), PayloadType.GROUP_CHAT_CREATION, responsePayload, serviceResponse.message());
-		this.externalHandler.sendPacketById(packet.getId(), responsePacket);
-	}
-
-	private void retryClientGroupChatAdditionRequest(Packet packet) {
-		ServiceResponse serviceResponse = this.chatService.addToChatGroup(packet.getPayload());
-		this.externalHandler.sendPacketById(packet.getId(), this.packetFactory.createGroupChatAdditionResponse(serviceResponse.status(), serviceResponse.message()));
-	}
-
-	private void retryClientMessage(Packet packet) {
-		JSONObject payload = packet.getPayload();
-
-		String clientId = packet.getId();
-		Long senderId = payload.getLong("userId");
-
-		ServiceResponse messageServiceResponse = this.messageService.saveMessage(payload);
-		if ((messageServiceResponse.status() == Status.VALIDATION_ERROR) || (messageServiceResponse.status() == Status.ERROR)) {
-			this.externalHandler.sendPacketById(clientId, this.packetFactory.createErrorResponse(PayloadType.MESSAGE, messageServiceResponse.message()));
-			return;
-		}
-
-		ServiceResponse userServiceResponse = this.userService.loadUsersIdsFromChat(payload);
-		if (userServiceResponse.status() == Status.VALIDATION_ERROR) {
-			this.externalHandler.sendPacketById(clientId, this.packetFactory.createErrorResponse(PayloadType.MESSAGE, userServiceResponse.message()));
-			return;
-		}
-
-		MessageCreateDto messageCreateDto = (MessageCreateDto) messageServiceResponse.payload();
-		payload.put("senderUsername", messageCreateDto.getSenderUsername());
-		payload.put("sentAt", messageCreateDto.getSentAt());
-
-		this.broadCastClientMessage((List<Long>) userServiceResponse.payload(), senderId, payload);
-	}
-
 }
