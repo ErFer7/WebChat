@@ -5,14 +5,17 @@ import static java.util.UUID.randomUUID;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+import org.json.JSONObject;
 import org.snf4j.websocket.IWebSocketSession;
 
 import com.ufsc.webchat.model.RoutingResponseDto;
 import com.ufsc.webchat.protocol.Packet;
 import com.ufsc.webchat.protocol.PacketFactory;
 import com.ufsc.webchat.protocol.enums.HostType;
+import com.ufsc.webchat.protocol.enums.PayloadType;
 import com.ufsc.webchat.server.Handler;
 import com.ufsc.webchat.websocket.utils.ApplicationContextMap;
 
@@ -23,6 +26,7 @@ public class ServerHandler extends Handler {
 	private final ApplicationContextMap applicationContextMap;
 	private final SecureRandom secureRandom;
 	private final Base64.Encoder encoder;
+	private final HashMap<Long, String> userIdApplicationIdMap;
 	private final ApplicationPacketProcessor applicationPacketProcessor;
 	private final HashMap<Long, String> userIdClientIdMap;
 	private final HashMap<String, CompletableFuture<RoutingResponseDto>> pendingRequestsByClientId;
@@ -35,20 +39,36 @@ public class ServerHandler extends Handler {
 		this.encoder = Base64.getUrlEncoder();
 		this.userIdClientIdMap = new HashMap<>();
 		this.pendingRequestsByClientId = new HashMap<>();
-		this.applicationPacketProcessor = new ApplicationPacketProcessor(this, this.packetFactory, this.applicationContextMap, this.userIdClientIdMap);
+		this.userIdApplicationIdMap = new HashMap<>();
+		this.applicationPacketProcessor = new ApplicationPacketProcessor(this, this.packetFactory, this.userIdApplicationIdMap, this.applicationContextMap,
+				this.userIdClientIdMap);
 	}
 
-	@Override
-	public void readPacket(Packet packet) {
+	@Override public void readPacket(Packet packet) {
 		if (packet.getHostType() == HostType.APPLICATION) {
 			this.applicationPacketProcessor.process(packet);
 		}
 	}
 
-	@Override
-	protected void sessionReady(IWebSocketSession session) {
+	@Override protected void sessionReady(IWebSocketSession session) {
 		super.sessionReady(session);
 		this.sendPacketBySession(session, this.packetFactory.createHandshakeInfo(session.getRemoteAddress().toString()));
+	}
+
+	@Override protected void sessionClosed(IWebSocketSession session) {
+		String applicationId = this.sessions.getProcessIdBySessionId(session.getId());
+
+		if (applicationId != null) {
+			for (Map.Entry<Long, String> entry : this.userIdApplicationIdMap.entrySet()) {
+				if (entry.getValue().equals(applicationId)) {
+					this.userIdApplicationIdMap.remove(entry.getKey());
+				}
+			}
+
+			this.applicationContextMap.remove(applicationId);
+		}
+
+		super.sessionClosed(session);
 	}
 
 	public String generateToken() {
@@ -64,7 +84,12 @@ public class ServerHandler extends Handler {
 		// TODO: Avaliar necessidade, uso só pra recuperar o clientId (mas aplicação poderia me repassar direto)
 		this.userIdClientIdMap.put(userId, clientId);
 		String serverId = this.applicationContextMap.chooseLeastLoadedApplication();
-		var applicationRequestPacket = this.packetFactory.createClientRoutingRequest(userId, this.generateToken());
+
+		JSONObject payload = new JSONObject();
+		payload.put("userId", userId);
+		payload.put("token", this.generateToken());
+
+		var applicationRequestPacket = this.packetFactory.createRequest(PayloadType.ROUTING, payload);
 		this.sendPacketById(serverId, applicationRequestPacket);
 	}
 

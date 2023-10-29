@@ -72,7 +72,11 @@ public class ClientPacketProcessor {
 
 	public void receiveClientDisconnection(String clientId) {
 		Long userId = this.userContextMap.getUserIdByClientId(clientId);
-		this.internalHandler.sendPacketById(this.gatewayId.getString(), this.packetFactory.createApplicationClientDisconnectingRequest(userId));
+		JSONObject payload = new JSONObject(Map.of("userId", userId));
+
+		this.userContextMap.removeClientId(userId);
+
+		this.internalHandler.sendPacketById(this.gatewayId.getString(), this.packetFactory.createRequest(PayloadType.DISCONNECTION, payload));
 	}
 
 	private boolean authenticateClient(Packet packet, PayloadType payloadType) {
@@ -110,6 +114,7 @@ public class ClientPacketProcessor {
 		this.userContextMap.setUserClientId(userId, clientId);
 
 		JSONObject newPayload = new JSONObject();
+		newPayload.put("userId", userId);
 		newPayload.put("clientId", clientId);
 
 		this.internalHandler.sendPacketById(this.gatewayId.getString(), this.packetFactory.createRequest(PayloadType.CLIENT_CONNECTION, newPayload));
@@ -283,10 +288,10 @@ public class ClientPacketProcessor {
 			String targetUserClientId = this.userContextMap.getClientId(targetUserId);
 
 			if (targetUserClientId != null) {
-				this.externalHandler.sendPacketById(targetUserClientId, this.packetFactory.createApplicationMessageResponse(Status.OK, payload));
+				this.externalHandler.sendPacketById(targetUserClientId, this.packetFactory.createOkResponse(PayloadType.MESSAGE, payload));
 			} else {
 				payload.put("targetUserId", targetUserId);
-				this.internalHandler.sendPacketById(this.gatewayId.getString(), this.packetFactory.createMessageForwarding(payload));
+				this.internalHandler.sendPacketById(this.gatewayId.getString(), this.packetFactory.createRequest(PayloadType.MESSAGE_FORWARDING, payload));
 			}
 		}
 	}

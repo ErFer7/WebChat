@@ -1,7 +1,5 @@
 package com.ufsc.webchat.websocket.utils;
 
-import static java.util.Objects.isNull;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -20,8 +18,8 @@ public class ApplicationContextMap {
 		this.applications.put(id, new Triplet<>(token, externalHost, 0));
 	}
 
-	public boolean remove(String id) {
-		return !isNull(this.applications.remove(id));
+	public void remove(String id) {
+		this.applications.remove(id);
 	}
 
 	public void incrementUserCount(String host) {
@@ -40,10 +38,6 @@ public class ApplicationContextMap {
 
 	public String getExternalHost(String id) {
 		return this.applications.get(id).getValue1();
-	}
-
-	public Integer getUserCount(String host) {
-		return this.applications.get(host).getValue2();
 	}
 
 	public String chooseLeastLoadedApplication() {

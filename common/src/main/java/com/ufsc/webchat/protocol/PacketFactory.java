@@ -66,63 +66,6 @@ public class PacketFactory {
 		return this.createPacket(Status.VALIDATION_ERROR, OperationType.RESPONSE, payloadType, payload);
 	}
 
-	public Packet createGatewayConnectionRequest(String identifier, String password, String host, int externalPort) {
-		JSONObject payload = new JSONObject();
-
-		payload.put("identifier", identifier);
-		payload.put("password", password);
-		payload.put("host", host);
-		payload.put("externalPort", externalPort);
-
-		return this.createPacket(null, OperationType.REQUEST, PayloadType.APPLICATION_CONNECTION, payload);
-	}
-
-	public Packet createApplicationConnectionResponse(Status status, String token) {
-		JSONObject payload = new JSONObject();
-
-		payload.put("token", token);
-
-		return this.createPacket(status, OperationType.RESPONSE, PayloadType.APPLICATION_CONNECTION, payload);
-	}
-
-	public Packet createClientRoutingRequest(Long userId, String token) {
-		JSONObject payload = new JSONObject();
-
-		payload.put("userId", userId);
-		payload.put("token", token);
-
-		return this.createPacket(null, OperationType.REQUEST, PayloadType.ROUTING, payload);
-	}
-
-	public Packet createApplicationClientRoutingResponse(Status status, Long userId, String token) {
-		JSONObject payload = new JSONObject();
-
-		payload.put("userId", userId);
-		payload.put("token", token);
-
-		return this.createPacket(status, OperationType.RESPONSE, PayloadType.ROUTING, payload);
-	}
-
-	public Packet createApplicationClientDisconnectingRequest(Long userId) {
-		JSONObject payload = new JSONObject();
-		payload.put("userId", userId);
-		return this.createPacket(null, OperationType.REQUEST, PayloadType.DISCONNECTION, payload);
-	}
-
-	public Packet createGatewayClientDisconnectionResponse(Long userId) {
-		JSONObject payload = new JSONObject();
-		payload.put("userId", userId);
-		return this.createPacket(Status.OK, OperationType.RESPONSE, PayloadType.DISCONNECTION, payload);
-	}
-
-	public Packet createApplicationMessageResponse(Status status, JSONObject payload) {
-		return this.createPacket(status, OperationType.RESPONSE, PayloadType.MESSAGE, payload);
-	}
-
-	public Packet createMessageForwarding(JSONObject payload) {
-		return this.createPacket(null, OperationType.REQUEST, PayloadType.MESSAGE_FORWARDING, payload);
-	}
-
 	public Packet createGenericClientResponse(Status status, PayloadType payloadType, JSONObject payload, String message) {
 		if (status.equals(Status.ERROR)) {
 			return this.createErrorResponse(payloadType, message);
