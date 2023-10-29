@@ -190,7 +190,8 @@ public class ClientPacketProcessor {
 			Retry.launch(packet, this);
 		}
 
-		this.externalHandler.sendPacketById(packet.getId(), this.packetFactory.createGroupChatAdditionResponse(serviceResponse.status(), serviceResponse.message()));
+		var responsePacket = this.packetFactory.createGenericClientResponse(serviceResponse.status(), PayloadType.GROUP_CHAT_ADDITION, null, serviceResponse.message());
+		this.externalHandler.sendPacketById(packet.getId(), responsePacket);
 	}
 
 	private void receiveClientMessage(Packet packet) {
@@ -300,7 +301,8 @@ public class ClientPacketProcessor {
 
 	private void retryClientGroupChatAdditionRequest(Packet packet) {
 		ServiceResponse serviceResponse = this.chatService.addToChatGroup(packet.getPayload());
-		this.externalHandler.sendPacketById(packet.getId(), this.packetFactory.createGroupChatAdditionResponse(serviceResponse.status(), serviceResponse.message()));
+		var responsePacket = this.packetFactory.createGenericClientResponse(serviceResponse.status(), PayloadType.GROUP_CHAT_ADDITION, null, serviceResponse.message());
+		this.externalHandler.sendPacketById(packet.getId(), responsePacket);
 	}
 
 	private void retryClientMessage(Packet packet) {

@@ -52,7 +52,8 @@ function MessageSection({ messages, chatName, handleSendMessage, selfUserId }) {
         placeholder='Digite sua mensagem'
         sx={{ width: '100%', mt: 2 }}
         onKeyDown={(event) => {
-          if (event.key === 'Enter') {
+          if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault()
             onClickSend()
           }
         }}
@@ -77,12 +78,12 @@ function ChatMessage({ message, selfUserId }) {
           mb: 1,
           backgroundColor: isSelf ? theme.palette.grey[300] : theme.palette.grey[100],
           borderRadius: '10px',
-          width: 'fit-content',
           alignSelf: isSelf ? 'flex-end' : 'flex-start',
+          maxWidth: '90%',
         }}
       >
         {!isSelf && <Typography style={{ fontWeight: 'bold', marginBottom: 1 }}>{message.senderUsername}</Typography>}
-        <Typography>{message.message}</Typography>
+        <Typography style={{ overflowWrap: 'break-word' }}>{message.message}</Typography>
         <Typography style={{ fontSize: '0.8rem', color: 'gray' }}>
           {new Date(message.sentAt).toLocaleString()}
         </Typography>
@@ -102,5 +103,5 @@ MessageSection.propTypes = {
 
 ChatMessage.propTypes = {
   message: PropTypes.object,
-  selfUserId: PropTypes.string,
+  selfUserId: PropTypes.number,
 }

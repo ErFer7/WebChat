@@ -56,10 +56,14 @@ public class PacketFactory {
 
 	public Packet createErrorResponse(PayloadType payloadType, String message) {
 		JSONObject payload = new JSONObject();
-
 		payload.put("message", message);
-
 		return this.createPacket(Status.ERROR, OperationType.RESPONSE, payloadType, payload);
+	}
+
+	public Packet createValidationErrorResponse(PayloadType payloadType, String message) {
+		JSONObject payload = new JSONObject();
+		payload.put("message", message);
+		return this.createPacket(Status.VALIDATION_ERROR, OperationType.RESPONSE, payloadType, payload);
 	}
 
 	public Packet createGatewayConnectionRequest(String identifier, String password, String host, int externalPort) {
@@ -99,23 +103,6 @@ public class PacketFactory {
 		return this.createPacket(status, OperationType.RESPONSE, PayloadType.ROUTING, payload);
 	}
 
-	public Packet createGatewayClientRoutingResponse(Status status, Long userId, String token, String applicationId, String applicationHost) {
-		JSONObject payload = new JSONObject();
-
-		payload.put("userId", userId);
-		payload.put("token", token);
-		payload.put("applicationId", applicationId);
-		payload.put("applicationHost", applicationHost);
-
-		return this.createPacket(status, OperationType.RESPONSE, PayloadType.ROUTING, payload);
-	}
-
-	public Packet createClientRegisterUserResponse(Status status, String message) {
-		JSONObject payload = new JSONObject();
-		payload.put("message", message);
-		return this.createPacket(status, OperationType.RESPONSE, PayloadType.USER_CREATION, payload);
-	}
-
 	public Packet createApplicationClientDisconnectingRequest(Long userId) {
 		JSONObject payload = new JSONObject();
 		payload.put("userId", userId);
@@ -128,16 +115,10 @@ public class PacketFactory {
 		return this.createPacket(Status.OK, OperationType.RESPONSE, PayloadType.DISCONNECTION, payload);
 	}
 
-	public Packet createGroupChatAdditionResponse(Status status, String message) {
-		JSONObject payload = new JSONObject();
-		payload.put("message", message);
-		return this.createPacket(status, OperationType.RESPONSE, PayloadType.GROUP_CHAT_ADDITION, payload);
-	}
-
 	public Packet createApplicationMessageResponse(Status status, JSONObject payload) {
 		return this.createPacket(status, OperationType.RESPONSE, PayloadType.MESSAGE, payload);
 	}
-	
+
 	public Packet createMessageForwarding(JSONObject payload) {
 		return this.createPacket(null, OperationType.REQUEST, PayloadType.MESSAGE_FORWARDING, payload);
 	}
@@ -145,6 +126,8 @@ public class PacketFactory {
 	public Packet createGenericClientResponse(Status status, PayloadType payloadType, JSONObject payload, String message) {
 		if (status.equals(Status.ERROR)) {
 			return this.createErrorResponse(payloadType, message);
+		} else if (status.equals(Status.VALIDATION_ERROR)) {
+			return this.createValidationErrorResponse(payloadType, message);
 		}
 		return this.createPacket(status, OperationType.RESPONSE, payloadType, payload);
 	}

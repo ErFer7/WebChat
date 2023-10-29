@@ -35,11 +35,11 @@ export function AuthProvider({ children }) {
     const token = localStorage.getItem('token')
     const applicationHost = localStorage.getItem('applicationHost')
     const clientId = localStorage.getItem('clientId')
-    const userId = localStorage.getItem('userId')
+    const userIdString = localStorage.getItem('userId')
 
-    if (token && applicationHost && clientId) {
+    if (token && applicationHost && clientId && userIdString) {
       setIsAuthenticated(true)
-      setApplicationConnectInfo({ token, applicationHost, userId })
+      setApplicationConnectInfo({ token, applicationHost, userId: parseInt(userIdString, 10) })
       setClientId(clientId)
     } else {
       setClientId(uuidv4())
