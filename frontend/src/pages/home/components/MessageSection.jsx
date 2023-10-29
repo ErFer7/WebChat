@@ -55,6 +55,11 @@ function MessageSection({ messages, selectedChat, handleSendMessage }) {
           <Typography sx={{ fontWeight: 'bold' }}>{selectedChat.name}</Typography>
         </Box>
       </Box>
+      {selectedChat.isGroupChat && selectedChat.usernames && (
+        <Typography variant='subtitle2' sx={{ px: 1, mb: 1 }}>
+          <strong>Usuários no grupo:</strong> {selectedChat.usernames.join(', ')}
+        </Typography>
+      )}
       <Box ref={boxRef} style={{ maxHeight: '55vh', overflowY: 'auto' }} sx={{ px: 2 }}>
         {messages?.map((message, index) => (
           <ChatMessage

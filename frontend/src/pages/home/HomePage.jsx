@@ -15,7 +15,7 @@ function HomePage() {
   const [tabValue, setTabValue] = useState('chatList')
   const [groupForm, setGroupForm] = useState({ groupName: '', usernames: [] })
   const [createGroupAlert, setCreateGroupAlert] = useState()
-  const [selectedChat, setSelectedChat] = useState({ id: null, name: null, isGroupChat: null })
+  const [selectedChat, setSelectedChat] = useState({ id: null, name: null, isGroupChat: null, usernames: [] })
   const [notifyChatId, setNotifyChatId] = useState(null)
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState({ websocket: true, chats: false, users: false, messages: false })
@@ -60,7 +60,10 @@ function HomePage() {
             handleSelectChat({ id: data?.payload?.chatId, name: data?.payload?.targetUsername, isGroupChat: false })
           data?.status == 'CREATED' && fetchChats()
           break
-
+        case 'CHAT_USERS_LISTING':
+          data?.status == 'OK' &&
+            setSelectedChat((prevState) => ({ ...prevState, usernames: data?.payload?.usernames }))
+          break
         case 'MESSAGE_LISTING':
           data?.status == 'OK' && setMessages(data?.payload?.messages)
           setLoading((prevState) => ({ ...prevState, messages: false }))
@@ -168,14 +171,16 @@ function HomePage() {
       setSelectedChat(chat)
       setNotifyChatId((prevState) => (prevState == chat.id ? null : prevState))
       setLoading((prevState) => ({ ...prevState, messages: true }))
-      sendJsonMessage({
+
+      const requestPacket = {
         ...commonRequestPacket,
-        payloadType: 'MESSAGE_LISTING',
         payload: {
           ...commonRequestPacket.payload,
           chatId: chat.id,
         },
-      })
+      }
+      sendJsonMessage({ ...requestPacket, payloadType: 'MESSAGE_LISTING' })
+      chat.isGroupChat && sendJsonMessage({ ...requestPacket, payloadType: 'CHAT_USERS_LISTING' })
     },
     [sendJsonMessage, commonRequestPacket]
   )
