@@ -3,7 +3,7 @@ import { Alert, Box, Button, Paper, TextField, Typography, useTheme } from '@mui
 import PropTypes from 'prop-types'
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../../hooks/useAuth'
-function MessageSection({ messages, chatName, handleSendMessage }) {
+function MessageSection({ messages, selectedChat, handleSendMessage }) {
   const { applicationConnectionInfo } = useAuth()
 
   const [message, setMessage] = useState('')
@@ -52,12 +52,17 @@ function MessageSection({ messages, chatName, handleSendMessage }) {
             borderBottom: `1px solid ${theme.palette.primary.light}`,
           }}
         >
-          <Typography sx={{ fontWeight: 'bold' }}>{chatName}</Typography>
+          <Typography sx={{ fontWeight: 'bold' }}>{selectedChat.name}</Typography>
         </Box>
       </Box>
       <Box ref={boxRef} style={{ maxHeight: '55vh', overflowY: 'auto' }} sx={{ px: 2 }}>
         {messages?.map((message, index) => (
-          <ChatMessage key={index} message={message} selfUserId={applicationConnectionInfo.userId} />
+          <ChatMessage
+            key={index}
+            message={message}
+            selfUserId={applicationConnectionInfo.userId}
+            isGroupChat={selectedChat.isGroupChat}
+          />
         ))}
       </Box>
       {errorMessage && (
@@ -87,7 +92,7 @@ function MessageSection({ messages, chatName, handleSendMessage }) {
     </Box>
   )
 }
-function ChatMessage({ message, selfUserId }) {
+function ChatMessage({ message, selfUserId, isGroupChat }) {
   const theme = useTheme()
   const isSelf = message.senderId === selfUserId
 
@@ -103,7 +108,9 @@ function ChatMessage({ message, selfUserId }) {
           maxWidth: '90%',
         }}
       >
-        {!isSelf && <Typography style={{ fontWeight: 'bold', marginBottom: 1 }}>{message.senderUsername}</Typography>}
+        {!isSelf && isGroupChat && (
+          <Typography style={{ fontWeight: 'bold', marginBottom: 1 }}>{message.senderUsername}</Typography>
+        )}
         <Typography style={{ overflowWrap: 'break-word' }}>{message.message}</Typography>
         <Typography style={{ fontSize: '0.8rem', color: 'gray' }}>
           {new Date(message.sentAt).toLocaleString()}
@@ -115,13 +122,14 @@ function ChatMessage({ message, selfUserId }) {
 
 MessageSection.propTypes = {
   messages: PropTypes.arrayOf(PropTypes.object),
-  chatName: PropTypes.string,
+  selectedChat: PropTypes.object,
   handleSendMessage: PropTypes.func,
 }
 
 ChatMessage.propTypes = {
   message: PropTypes.object,
   selfUserId: PropTypes.number,
+  isGroupChat: PropTypes.bool,
 }
 
 export { MessageSection }

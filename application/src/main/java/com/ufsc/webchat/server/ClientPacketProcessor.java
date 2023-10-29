@@ -49,14 +49,15 @@ public class ClientPacketProcessor {
 
 	public void process(Packet packet) {
 		switch (packet.getPayloadType()) {
-		case CLIENT_CONNECTION -> this.receiveClientConnectionRequest(packet);
-		case USER_LISTING -> this.receiveClientUserListingRequest(packet);
-		case GROUP_CHAT_CREATION -> this.receiveClientGroupChatCreationRequest(packet);
-		case CHAT_LISTING -> this.receiveClientChatListingRequest(packet);
-		case GROUP_CHAT_ADDITION -> this.receiveClientGroupChatAdditionRequest(packet);
-		case GET_USER_CHAT_ID -> this.receiveClientGetUserChatId(packet);
-		case MESSAGE -> this.receiveClientMessage(packet);
-		case MESSAGE_LISTING -> this.receiveClientMessageListing(packet);
+		case CLIENT_CONNECTION -> this.receiveConnectionRequest(packet);
+		case USER_LISTING -> this.receiveUserListingRequest(packet);
+		case GROUP_CHAT_CREATION -> this.receiveGroupChatCreationRequest(packet);
+		case CHAT_LISTING -> this.receiveChatListingRequest(packet);
+		case GROUP_CHAT_ADDITION -> this.receiveGroupChatAdditionRequest(packet);
+		case GET_USER_CHAT_ID -> this.receiveGetUserChatId(packet);
+		case MESSAGE -> this.receiveMessage(packet);
+		case MESSAGE_LISTING -> this.receiveMessageListing(packet);
+		case CHAT_USERS_LISTING -> this.receiveChatUsersListing(packet);
 		default -> logger.warn("Unexpected packet type: {}", packet.getPayloadType());
 		}
 	}
@@ -92,7 +93,7 @@ public class ClientPacketProcessor {
 		return true;
 	}
 
-	private void receiveClientConnectionRequest(Packet packet) {
+	private void receiveConnectionRequest(Packet packet) {
 		JSONObject payload = packet.getPayload();
 
 		var missingFields = JSONValidator.validate(payload, List.of("userId", "host"));
@@ -120,7 +121,7 @@ public class ClientPacketProcessor {
 		this.internalHandler.sendPacketById(this.gatewayId.getString(), this.packetFactory.createRequest(PayloadType.CLIENT_CONNECTION, newPayload));
 	}
 
-	private void receiveClientUserListingRequest(Packet packet) {
+	private void receiveUserListingRequest(Packet packet) {
 		if (!this.authenticateClient(packet, PayloadType.USER_LISTING)) {
 			return;
 		}
@@ -130,7 +131,7 @@ public class ClientPacketProcessor {
 		this.externalHandler.sendPacketById(packet.getId(), responsePacket);
 	}
 
-	private void receiveClientGroupChatCreationRequest(Packet packet) {
+	private void receiveGroupChatCreationRequest(Packet packet) {
 		JSONObject payload = packet.getPayload();
 
 		var missingFields = JSONValidator.validate(payload, List.of("groupName", "membersUsernames", "userId"));
@@ -157,7 +158,7 @@ public class ClientPacketProcessor {
 		this.externalHandler.sendPacketById(packet.getId(), responsePacket);
 	}
 
-	private void receiveClientChatListingRequest(Packet packet) {
+	private void receiveChatListingRequest(Packet packet) {
 		JSONObject payload = packet.getPayload();
 
 		var missingFields = JSONValidator.validate(payload, List.of("userId"));
@@ -176,7 +177,7 @@ public class ClientPacketProcessor {
 		this.externalHandler.sendPacketById(packet.getId(), responsePacket);
 	}
 
-	private void receiveClientGroupChatAdditionRequest(Packet packet) {
+	private void receiveGroupChatAdditionRequest(Packet packet) {
 		JSONObject payload = packet.getPayload();
 
 		var missingFields = JSONValidator.validate(payload, List.of("userId", "chatId", "addedUserName"));
@@ -199,7 +200,7 @@ public class ClientPacketProcessor {
 		this.externalHandler.sendPacketById(packet.getId(), responsePacket);
 	}
 
-	private void receiveClientMessage(Packet packet) {
+	private void receiveMessage(Packet packet) {
 		JSONObject payload = packet.getPayload();
 
 		var missingFields = JSONValidator.validate(payload, List.of("message", "chatId", "userId"));
@@ -238,7 +239,7 @@ public class ClientPacketProcessor {
 		this.broadCastClientMessage((List<Long>) userServiceResponse.payload(), senderId, payload);
 	}
 
-	private void receiveClientMessageListing(Packet packet) {
+	private void receiveMessageListing(Packet packet) {
 		JSONObject payload = packet.getPayload();
 
 		var missingFields = JSONValidator.validate(payload, List.of("userId", "chatId"));
@@ -259,7 +260,7 @@ public class ClientPacketProcessor {
 		this.externalHandler.sendPacketById(packet.getId(), packetResponse);
 	}
 
-	private void receiveClientGetUserChatId(Packet packet) {
+	private void receiveGetUserChatId(Packet packet) {
 		JSONObject payload = packet.getPayload();
 
 		var missingFields = JSONValidator.validate(payload, List.of("userId", "targetUsername"));
@@ -274,8 +275,30 @@ public class ClientPacketProcessor {
 		}
 
 		ServiceResponse serviceResponse = this.chatService.loadOrSaveChatIdByUsers(packet.getPayload());
-		var responsePayload = new JSONObject(Map.of("chatId", serviceResponse.payload()));
-		var responsePacket = this.packetFactory.createGenericClientResponse(serviceResponse.status(), PayloadType.GET_USER_CHAT_ID, responsePayload, serviceResponse.message());
+		var responsePayload = new JSONObject(Map.of("chatId", serviceResponse.payload(), "targetUsername", payload.getString("targetUsername")));
+		var responsePacket = this.packetFactory.createGenericClientResponse(serviceResponse.status(), PayloadType.GET_USER_CHAT_ID, responsePayload,
+				serviceResponse.message());
+		this.externalHandler.sendPacketById(packet.getId(), responsePacket);
+	}
+
+	private void receiveChatUsersListing(Packet packet) {
+		JSONObject payload = packet.getPayload();
+
+		var missingFields = JSONValidator.validate(payload, List.of("userId", "chatId"));
+		if (!missingFields.isEmpty()) {
+			this.externalHandler.sendPacketById(packet.getId(), this.packetFactory.createErrorResponse(PayloadType.CHAT_USERS_LISTING, "Payload inválido"));
+			logger.error("Invalid payload");
+			return;
+		}
+
+		if (!this.authenticateClient(packet, PayloadType.CHAT_USERS_LISTING)) {
+			return;
+		}
+
+		ServiceResponse serviceResponse = this.userService.loadUserNamesFromChatId(packet.getPayload());
+		var usernames = serviceResponse.payload();
+		var responsePayload = isNull(usernames) ? null : new JSONObject(Map.of("usernames", usernames));
+		var responsePacket = this.packetFactory.createGenericClientResponse(serviceResponse.status(), PayloadType.CHAT_USERS_LISTING, responsePayload, serviceResponse.message());
 		this.externalHandler.sendPacketById(packet.getId(), responsePacket);
 	}
 

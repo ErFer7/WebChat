@@ -15,7 +15,7 @@ function HomePage() {
   const [tabValue, setTabValue] = useState('chatList')
   const [groupForm, setGroupForm] = useState({ groupName: '', usernames: [] })
   const [createGroupAlert, setCreateGroupAlert] = useState()
-  const [selectedChatId, setSelectedChatId] = useState()
+  const [selectedChat, setSelectedChat] = useState({ id: null, name: null, isGroupChat: null })
   const [notifyChatId, setNotifyChatId] = useState(null)
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState({ websocket: true, chats: false, users: false, messages: false })
@@ -56,7 +56,8 @@ function HomePage() {
           break
 
         case 'GET_USER_CHAT_ID':
-          data?.payload?.chatId && handleSetSelectChatId(data?.payload?.chatId)
+          data?.payload?.chatId &&
+            handleSelectChat({ id: data?.payload?.chatId, name: data?.payload?.targetUsername, isGroupChat: false })
           data?.status == 'CREATED' && fetchChats()
           break
 
@@ -67,7 +68,7 @@ function HomePage() {
 
         case 'MESSAGE':
           if (data?.status == 'OK') {
-            data?.payload?.chatId == selectedChatId
+            data?.payload?.chatId == selectedChat.id
               ? setMessages((prevState) =>
                   prevState.concat({
                     senderId: data?.payload?.userId,
@@ -103,8 +104,7 @@ function HomePage() {
     isAuthenticated
   )
 
-  // Essas duas informações poderiam vir do backend diretamente
-  const chatName = chatList?.find((chat) => chat.id == selectedChatId)?.name
+  // Essas informação poderia vir do backend diretamente
   const loggedUsername = useMemo(
     () => userList?.find((user) => user.id == applicationConnectionInfo.userId).username,
     [userList, applicationConnectionInfo]
@@ -149,7 +149,7 @@ function HomePage() {
       payloadType: 'MESSAGE',
       payload: {
         ...commonRequestPacket.payload,
-        chatId: selectedChatId,
+        chatId: selectedChat.id,
         message: message,
       },
     })
@@ -163,17 +163,17 @@ function HomePage() {
     )
   }
 
-  const handleSetSelectChatId = useCallback(
-    (chatId) => {
-      setSelectedChatId(chatId)
-      setNotifyChatId((prevState) => (prevState == chatId ? null : prevState))
+  const handleSelectChat = useCallback(
+    (chat) => {
+      setSelectedChat(chat)
+      setNotifyChatId((prevState) => (prevState == chat.id ? null : prevState))
       setLoading((prevState) => ({ ...prevState, messages: true }))
       sendJsonMessage({
         ...commonRequestPacket,
         payloadType: 'MESSAGE_LISTING',
         payload: {
           ...commonRequestPacket.payload,
-          chatId: chatId,
+          chatId: chat.id,
         },
       })
     },
@@ -223,9 +223,8 @@ function HomePage() {
                   <TabPanel value='chatList' sx={{ p: 0 }} style={{ maxHeight: '80vh', overflowY: 'auto' }}>
                     <ChatList
                       chats={chatList}
-                      selectedChatId={selectedChatId}
-                      setSelectedChatId={handleSetSelectChatId}
-                      chatName={chatName}
+                      selectedChat={selectedChat}
+                      setSelectedChat={handleSelectChat}
                       notifyChatId={notifyChatId}
                     />
                   </TabPanel>
@@ -247,8 +246,8 @@ function HomePage() {
             )}
           </Grid>
           <Grid item xs={9}>
-            {selectedChatId && (
-              <MessageSection messages={messages} chatName={chatName} handleSendMessage={handleSendMessage} />
+            {selectedChat.id && (
+              <MessageSection messages={messages} selectedChat={selectedChat} handleSendMessage={handleSendMessage} />
             )}
             {loading.messages && <CircularProgress />}
           </Grid>
