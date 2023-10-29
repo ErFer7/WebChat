@@ -4,7 +4,7 @@ import LogoutIcon from '@mui/icons-material/Logout'
 import { TabContext, TabList, TabPanel } from '@mui/lab'
 
 import { AppBar, Box, Button, CircularProgress, Grid, IconButton, Tab, Toolbar, Typography } from '@mui/material'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import useWebSocket from 'react-use-websocket'
 import { useAuth } from '../../hooks/useAuth'
@@ -14,15 +14,7 @@ import MessageSection from './components/MessageSection'
 import { UserList } from './components/UserList'
 
 function HomePage() {
-  const { isAuthenticated, applicationConnectionInfo, logout, clientId } = useAuth() // pegar infos dessa hook
-  const { sendJsonMessage, lastJsonMessage } = useWebSocket(
-    `ws:/${applicationConnectionInfo?.applicationHost}`,
-    {
-      onOpen: () => console.log(`Connected to App WS`),
-      onClose: () => logout(),
-    },
-    isAuthenticated
-  )
+  const { isAuthenticated, applicationConnectionInfo, logout, clientId } = useAuth()
 
   const [chatList, setChatList] = useState()
   const [userList, setUserList] = useState()
@@ -33,11 +25,89 @@ function HomePage() {
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState({ chats: false, users: false, messages: false })
 
-  const chatName = chatList?.find((chat) => chat.id == selectedChatId)?.name // tentar pegar do back
+  const handleNewWebSocketMessage = (message) => {
+    const data = JSON.parse(message.data)
+    if (isAuthenticated) {
+      switch (data?.payloadType) {
+        case 'HOST':
+          data?.operationType == 'INFO' && connect(data?.payload?.host)
 
+          break
+        case 'CLIENT_CONNECTION':
+          if (data?.status == 'OK') {
+            fetchChats()
+            fetchUsers()
+          }
+
+          break
+        case 'CHAT_LISTING':
+          data?.status == 'OK' && setChatList(data?.payload?.chats)
+          setLoading((prevState) => ({ ...prevState, chats: false }))
+          break
+        case 'USER_LISTING':
+          data?.status == 'OK' && setUserList(data?.payload?.users)
+          setLoading((prevState) => ({ ...prevState, users: false }))
+
+          break
+        case 'GROUP_CHAT_CREATION':
+          if (data?.status == 'CREATED') {
+            setCreateGroupAlert({ severity: 'success', message: 'Grupo criado com sucesso!' })
+            setGroupForm({ groupName: '', usernames: [] })
+            fetchChats()
+          } else if (data?.status == 'ERROR' || data?.status == 'VALIDATION_ERROR') {
+            setCreateGroupAlert({ severity: 'error', message: data?.payload?.message })
+          }
+
+          break
+        case 'GET_USER_CHAT_ID':
+          data?.payload?.chatId && handleSetSelectChatId(data?.payload?.chatId)
+          data?.status == 'CREATED' && fetchChats()
+
+          break
+        case 'MESSAGE_LISTING':
+          data?.status == 'OK' && setMessages(data?.payload?.messages)
+          setLoading((prevState) => ({ ...prevState, messages: false }))
+
+          break
+        case 'MESSAGE':
+          if (data?.status == 'OK') {
+            data?.payload?.chatId == selectedChatId &&
+              setMessages((prevState) =>
+                prevState.concat({
+                  senderId: data?.payload?.userId,
+                  senderUsername: data?.payload?.senderUsername,
+                  message: data?.payload?.message,
+                  sentAt: data?.payload?.sentAt,
+                })
+              ) // Posso mandar um feedback sobre os outros chats.
+          }
+
+          break
+        default:
+          break
+      }
+      console.log(data)
+    }
+  }
+
+  const { sendJsonMessage } = useWebSocket(
+    `ws:/${applicationConnectionInfo?.applicationHost}`,
+    {
+      onOpen: () => console.log(`Connected to App WS`),
+      shouldReconnect: () => true,
+      reconnectAttempts: 5,
+      reconnectInterval: 1000,
+      onReconnectStop: () => logout(),
+      onMessage: handleNewWebSocketMessage,
+    },
+    isAuthenticated
+  )
+
+  // Essas duas informações poderiam vir do backend diretamente
+  const chatName = chatList?.find((chat) => chat.id == selectedChatId)?.name
   const loggedUsername = useMemo(
     () => userList?.find((user) => user.id == applicationConnectionInfo.userId).username,
-    [userList, applicationConnectionInfo] // tentar pegar do back
+    [userList, applicationConnectionInfo]
   )
 
   const commonRequestPacket = useMemo(() => {
@@ -134,72 +204,6 @@ function HomePage() {
     [sendJsonMessage, commonRequestPacket]
   )
 
-  useEffect(() => {
-    const data = lastJsonMessage
-    if (lastJsonMessage && isAuthenticated) {
-      switch (data?.payloadType) {
-        case 'HOST':
-          data?.operationType == 'INFO' && connect(data?.payload?.host)
-
-          break
-        case 'CLIENT_CONNECTION':
-          if (data?.status == 'OK') {
-            fetchChats()
-            fetchUsers()
-          }
-
-          break
-        case 'CHAT_LISTING':
-          data?.status == 'OK' && setChatList(data?.payload?.chats)
-          setLoading((prevState) => ({ ...prevState, chats: false }))
-          break
-        case 'USER_LISTING':
-          data?.status == 'OK' && setUserList(data?.payload?.users)
-          setLoading((prevState) => ({ ...prevState, users: false }))
-
-          break
-        case 'GROUP_CHAT_CREATION':
-          if (data?.status == 'CREATED') {
-            setCreateGroupAlert({ severity: 'success', message: 'Grupo criado com sucesso!' })
-            setGroupForm({ groupName: '', usernames: [] })
-            fetchChats()
-          } else if (data?.status == 'ERROR' || data?.status == 'VALIDATION_ERROR') {
-            setCreateGroupAlert({ severity: 'error', message: data?.payload?.message })
-          }
-
-          break
-        case 'GET_USER_CHAT_ID':
-          data?.payload?.chatId && handleSetSelectChatId(data?.payload?.chatId)
-          data?.status == 'CREATED' && fetchChats()
-
-          break
-        case 'MESSAGE_LISTING':
-          data?.status == 'OK' && setMessages(data?.payload?.messages)
-          setLoading((prevState) => ({ ...prevState, messages: false }))
-
-          break
-        case 'MESSAGE':
-          if (data?.status == 'OK') {
-            data?.payload?.chatId == selectedChatId &&
-              setMessages((prevState) =>
-                prevState.concat({
-                  senderId: data?.payload?.userId,
-                  senderUsername: data?.payload?.senderUsername,
-                  message: data?.payload?.message,
-                  sentAt: data?.payload?.sentAt,
-                })
-              ) // Posso mandar um feedback sobre os outros chats.
-          }
-
-          break
-        default:
-          break
-      }
-    }
-    console.log(data)
-  }, [lastJsonMessage, isAuthenticated, connect, handleSetSelectChatId, fetchChats, fetchUsers, clientId])
-  // Não vou colocar selectedChatId aqui, pois não quero que ele atualize a cada mudança de chat (com tempo, avaliar)
-
   return isAuthenticated ? (
     <div>
       <Grid container sx={{ mb: 4 }}>
@@ -256,6 +260,7 @@ function HomePage() {
                       handleCreateGroup={handleCreateGroup}
                       alert={createGroupAlert}
                       setAlert={setCreateGroupAlert}
+                      userList={userList}
                     />
                   </TabPanel>
                 </TabContext>

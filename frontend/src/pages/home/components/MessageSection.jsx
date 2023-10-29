@@ -1,24 +1,37 @@
 import SendIcon from '@mui/icons-material/Send'
-import { Box, Button, Paper, TextField, Typography, useTheme } from '@mui/material'
+import { Alert, Box, Button, Paper, TextField, Typography, useTheme } from '@mui/material'
 import PropTypes from 'prop-types'
 import { useEffect, useRef, useState } from 'react'
 function MessageSection({ messages, chatName, handleSendMessage, selfUserId }) {
   const [message, setMessage] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
   const theme = useTheme()
   const boxRef = useRef(null)
 
-  const onClickSend = () => {
-    if (message) {
-      handleSendMessage(message)
-      setMessage('')
-    }
+  function isValidMessage(str) {
+    if (str === null || str.trim() === '') return { valid: false, error: 'Mensagem vazia' }
+    if (str.length > 1000) return { valid: false, error: 'Mensagem com mais de 1000 caracteres' }
+    return { valid: true, error: '' }
   }
 
-  const handleMessageChange = (event) => setMessage(event.target.value)
+  const onClickSend = () => {
+    const { valid, error } = isValidMessage(message)
+    if (!valid) {
+      setErrorMessage(error)
+      return
+    }
+    handleSendMessage(message)
+    setMessage('')
+  }
+
+  const handleMessageChange = (event) => {
+    setMessage(event.target.value)
+    setErrorMessage('')
+  }
 
   useEffect(() => {
     // Ajuste o scroll para o final quando as mensagens forem carregadas
-    // Posso alterar depois pra não jogar pra baixo sempre, e sim avisar, idk
+    // Pode ser alterado pra não ir pra baixo pra sempre com mudança nas mensagens, mas é o comportamento atual
     if (boxRef.current) {
       boxRef.current.scrollTop = boxRef.current.scrollHeight
     }
@@ -39,11 +52,16 @@ function MessageSection({ messages, chatName, handleSendMessage, selfUserId }) {
           <Typography sx={{ fontWeight: 'bold' }}>{chatName}</Typography>
         </Box>
       </Box>
-      <Box ref={boxRef} style={{ maxHeight: '60vh', overflowY: 'auto' }} sx={{ px: 2 }}>
+      <Box ref={boxRef} style={{ maxHeight: '55vh', overflowY: 'auto' }} sx={{ px: 2 }}>
         {messages?.map((message, index) => (
           <ChatMessage key={index} message={message} selfUserId={selfUserId} />
         ))}
       </Box>
+      {errorMessage && (
+        <Alert sx={{ mt: 2 }} severity='error'>
+          {errorMessage}
+        </Alert>
+      )}
       <TextField
         onChange={handleMessageChange}
         value={message}
