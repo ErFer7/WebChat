@@ -2,6 +2,7 @@ package com.ufsc.webchat.utils.retry;
 
 import static java.util.Objects.isNull;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 import org.slf4j.Logger;
@@ -26,11 +27,12 @@ public class RetryProcessor {
 			try {
 				method.invoke(target, args);
 				return; // O método foi executado com sucesso; sair do loop de retentativa
-			} catch (Throwable e) {
-				if (!exceptionClass.isInstance(e)) {
+			} catch (InvocationTargetException e) {
+				if (!exceptionClass.isInstance(e.getTargetException())) {
 					throw e; // Lançar exceção se não for da classe especificada
 				} else if (attempt == maxAttempts) { // Se passou das tentativas máximas, chamar função de tratamento especificada.
-					whenMaxAttempts.call(e.getMessage());
+					whenMaxAttempts.call(e.getTargetException().getMessage());
+					return;
 				}
 				// Caso contrário, agende a próxima tentativa após o atraso especificado
 				try {
