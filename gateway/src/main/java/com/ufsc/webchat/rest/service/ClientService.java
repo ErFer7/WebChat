@@ -28,7 +28,6 @@ public class ClientService {
 	}
 
 	public Long register(UserDto userDto) {
-		// TODO AVALIAR MELHOR FORMA DE FAZER ISSO COM SPRING
 		EntityManager em = EntityManagerProvider.getEntityManager();
 		try (em) {
 			em.getTransaction().begin();

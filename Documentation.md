@@ -71,10 +71,10 @@
 
 ```mermaid
 sequenceDiagram
-    Application -->> Gateaway: Websocket connection
-    Gateaway ->> Application: Host
-    Application ->> Gateaway: Connection request
-    Gateaway ->> Application: Connection response
+    Application -->> Gateway: Websocket connection
+    Gateway ->> Application: Host
+    Application ->> Gateway: Connection request
+    Gateway ->> Application: Connection response
 ```
 
 1. A conexão é estabelecida.
