@@ -9,7 +9,7 @@ Um sistema simples de chat em tempo real.
 * **Gerenciador de projetos**: Maven
 * **Frameworks de backend**: [SNF4J](https://github.com/snf4j/snf4j) and [Spring Boot](https://spring.io/projects/spring-boot)
 * **Linguagem de backend**: Java
-* **Framework de frontend**: React
+* **Biblioteca de frontend**: React
 * **Linguagem de frontend**: JavaScript
 * **Banco de dados**: PostgresSQL
 
