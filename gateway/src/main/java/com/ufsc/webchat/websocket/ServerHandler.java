@@ -81,7 +81,6 @@ public class ServerHandler extends Handler {
 
 	public void processLoginRequestWithApplication(Long userId, String clientId, CompletableFuture<RoutingResponseDto> futureRequest) {
 		this.pendingRequestsByClientId.put(clientId, futureRequest);
-		// TODO: Avaliar necessidade, uso só pra recuperar o clientId (mas aplicação poderia me repassar direto)
 		this.userIdClientIdMap.put(userId, clientId);
 		String serverId = this.applicationContextMap.chooseLeastLoadedApplication();
 
