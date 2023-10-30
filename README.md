@@ -38,6 +38,7 @@ Um sistema simples de chat em tempo real.
 ### Banco de dados
 
 **Requisitos**:
+
 * Docker
 
 1. Navegue até a pasta database com `cd database`
@@ -55,14 +56,14 @@ Um sistema simples de chat em tempo real.
 ### Servidor de Gateway
 
 1. Navegue até a pasta gateway com `cd gateway/target`
-2. Execute o comando `java -jar gateway-1.0.jar` para cada instância desejada
+2. Execute o comando `java -jar gateway-1.0.jar`
 
 ---
 
 ### Servidor de Application
 
 1. Navegue até a pasta application com `cd application/target`
-2. Execute o comando `java -jar application-1.0.jar`
+2. Execute o comando `java -jar application-1.0.jar` para cada instância desejada
 
 ---
 
@@ -82,6 +83,12 @@ Um sistema simples de chat em tempo real.
 4. Frontend
 
 ---
+
+### Pastas de configurações de URL's
+
+API Gateway no Frontend: `frontend/src/pages/login/ClientService.js`
+Gateway no Backend: `common/src/main/resources/config/network.properties`
+Banco de dados no Backend: `common/src/main/resources/config/application.properties`
 
 [Changelog](Changelog.md)
 
