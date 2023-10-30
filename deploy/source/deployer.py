@@ -45,8 +45,6 @@ class Deployer():
                     self.transfer()
                 case '3':
                     self.start()
-                case '4':
-                    self.stop()
                 case '5':
                     print('>>> Saindo...')
                     break
@@ -131,12 +129,64 @@ class Deployer():
         for server in self._production_config['servers']:
             match server['role']:
                 case 'database':
-                    pass
+                    ssh = paramiko.SSHClient()
+                    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+                    username, hostname = server['login'].split('@')
+                    ssh.connect(hostname, username=username, password=server['password'])
+
+                    sftp = ssh.open_sftp()
+
+                    sftp.put(join('..', 'database', 'scripts', 'create_tables.sql'), join('webchat-database', 'scripts', 'create_tables.sql'))
+                    sftp.put(join('..', 'database', 'docker-compose.yml'), join('webchat-database', 'docker-compose.yml'))
+
+                    sftp.close()
+                    ssh.close()
                 case 'gateway':
-                    pass
+                    ssh = paramiko.SSHClient()
+                    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+                    username, hostname = server['login'].split('@')
+                    ssh.connect(hostname, username=username, password=server['password'])
+
+                    sftp = ssh.open_sftp()
+
+                    sftp.put(join('..', 'gateway', 'target', 'gateway-1.0.jar'), join('webchat-gateway', 'gateway-1.0.jar'))
+                    sftp.put(join('config', 'common-application-prod.properties'), join('webchat-gateway', 'application.properties'))
+                    sftp.put(join('config', 'gateway-application-prod.properties'), join('webchat-gateway', 'spring-application.properties'))
+                    sftp.put(join('config', 'network-prod.properties'), join('webchat-gateway', 'network.properties'))
+
+                    sftp.close()
+                    ssh.close()
                 case 'application':
                     pass
                 case _:
                     print('>>> Papel inválido')
 
         print('>>> Arquivos transferidos')
+
+    def start(self) -> None:
+        '''
+        Inicia servidores.
+        '''
+
+        while True:
+            print('\n>>> Selecione uma opção:')
+            print('>>> 1 - Voltar')
+            for i, server in enumerate(self._production_config['servers']):
+                print(f'>>> {i + 2} - {server["role"]} - {server["login"]}')
+
+            option = input('>>> ')
+
+            match option:
+                case '1':
+                    break
+                case value:
+                    self.start_server(int(value) - 2)
+
+    def start_server(self, server: dict) -> None:
+        '''
+        Inicia servidor.
+        ''' 
+
+        print(f'>>> Iniciando servidor {server["role"]} - {server["login"]}')
