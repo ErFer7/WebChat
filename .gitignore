@@ -207,4 +207,4 @@ cython_debug/
 
 ### Deploy ###
 
-deploy/config
+deploy
