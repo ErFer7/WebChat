@@ -49,7 +49,8 @@ Um sistema simples de chat em tempo real.
 ### Preparação do backend
 
 1. Na raíz do repositório, execute o comando `mvn clean install`
-2. Gere os pacotes com `mvn package`
+2. No diretório do gateway, gere o pacote do gateway com `mvn -pl :gateway clean compile assembly:single`
+3. No diretório do application, gere o pacote do application com `mvn -pl :application clean compile assembly:single`
 
 ---
 
