@@ -49,21 +49,22 @@ Um sistema simples de chat em tempo real.
 ### Preparação do backend
 
 1. Na raíz do repositório, execute o comando `mvn clean install`
-2. Gere os pacotes com `mvn package`
+2. Gere o pacote do gateway com `mvn -pl :gateway clean compile assembly:single`
+3. Gere o pacote do servidor de apĺicação com `mvn -pl :application clean compile assembly:single`
 
 ---
 
 ### Servidor de Gateway
 
 1. Navegue até a pasta gateway com `cd gateway/target`
-2. Execute o comando `java -jar gateway-1.0.jar`
+2. Execute o comando `java -jar gateway-1.0-jar-with-dependencies.jar`
 
 ---
 
-### Servidor de Application
+### Servidor de Aplicação
 
 1. Navegue até a pasta application com `cd application/target`
-2. Execute o comando `java -jar application-1.0.jar` para cada instância desejada
+2. Execute o comando `java -jar application-1.0-jar-with-dependencies.jar` para cada instância desejada
 
 ---
 
