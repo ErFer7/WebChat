@@ -2,6 +2,8 @@
 
 Um sistema simples de chat em tempo real.
 
+Autores: Eric Fernandes Evaristo, Gabriela Furtado da Silveira e Samantha Costa de Sousa.
+
 ---
 
 ## Stack
